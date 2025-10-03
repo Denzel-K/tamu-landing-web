@@ -1,4 +1,5 @@
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import { useState, useEffect } from "react";
 import mobileWelcome1 from "@/assets/mobile-welcome-1.jpeg";
 import mobileWelcome2 from "@/assets/mobile-welcome-2.jpeg";
 import mobileWelcome3 from "@/assets/mobile-welcome-3.jpeg";
@@ -7,9 +8,40 @@ import mobileDiscoverMap from "@/assets/mobile-discover-map.jpeg";
 import mobileOrderReserve from "@/assets/mobile-order-reserve.jpeg";
 import mobileExperiences from "@/assets/mobile-experiences.jpeg";
 import mobileRewards from "@/assets/mobile-rewards.jpeg";
-import { MapPin, Calendar, Gift, Sparkles } from "lucide-react";
+import { MapPin, Calendar, Gift, Sparkles, Search, Bell, Clock, Smartphone } from "lucide-react";
 
 export const MobileShowcase = () => {
+  const [currentSlide, setCurrentSlide] = useState(0);
+  
+  const welcomeImages = [
+    { image: mobileWelcome1, title: "Discover" },
+    { image: mobileWelcome2, title: "Order" },
+    { image: mobileWelcome3, title: "Rewards" },
+  ];
+
+  const appBenefits = [
+    {
+      icon: Search,
+      title: "Restaurant Discovery",
+      description: "Find the best local restaurants with geo-tagged menus and smart filters",
+    },
+    {
+      icon: Clock,
+      title: "Real-time Order Tracking",
+      description: "Track your orders in real-time from preparation to delivery",
+    },
+    {
+      icon: Calendar,
+      title: "Easy Reservations",
+      description: "Book tables instantly and manage your dining schedule effortlessly",
+    },
+    {
+      icon: Smartphone,
+      title: "Everything in One Place",
+      description: "Orders, reservations, rewards, and experiences—all in a single app",
+    },
+  ];
+
   const features = [
     {
       icon: MapPin,
@@ -37,49 +69,115 @@ export const MobileShowcase = () => {
     },
   ];
 
+  // Auto-advance slideshow
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % welcomeImages.length);
+    }, 4000);
+    return () => clearInterval(timer);
+  }, []);
+
   return (
     <div className="space-y-24 py-24">
-      {/* Onboarding Section */}
+      {/* Hero Section with Slideshow and Benefits */}
       <section className="container mx-auto px-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="text-center mb-16"
+          className="text-center mb-12"
         >
-          <h2 className="text-4xl md:text-5xl font-bold mb-4 glow-text">
+          <h2 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-primary via-primary/80 to-primary bg-clip-text text-transparent">
             Seamless Customer Journey
           </h2>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
             From discovery to rewards, every step designed for the perfect dining experience
           </p>
         </motion.div>
 
-        <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-          {[
-            { image: mobileWelcome1, title: "Discover", delay: 0 },
-            { image: mobileWelcome2, title: "Order", delay: 0.2 },
-            { image: mobileWelcome3, title: "Rewards", delay: 0.4 },
-          ].map((step, index) => (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: step.delay, duration: 0.6 }}
-              className="relative group"
-            >
-              <div className="relative rounded-3xl overflow-hidden border-2 border-border glow-border group-hover:scale-105 transition-transform duration-300">
-                <img
-                  src={step.image}
-                  alt={step.title}
-                  className="w-full h-auto"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-background/90 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+        <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 max-w-6xl mx-auto items-center">
+          {/* Slideshow - Left on desktop, Top on mobile */}
+          <motion.div
+            initial={{ opacity: 0, x: -30 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="relative"
+          >
+            <div className="relative max-w-sm mx-auto">
+              {/* Decorative background */}
+              <div className="absolute -inset-6 bg-primary/10 blur-3xl rounded-full" />
+              
+              {/* Slideshow container */}
+              <div className="relative rounded-3xl overflow-hidden border-2 border-primary/20 shadow-2xl shadow-primary/10">
+                <AnimatePresence mode="wait">
+                  <motion.img
+                    key={currentSlide}
+                    src={welcomeImages[currentSlide].image}
+                    alt={welcomeImages[currentSlide].title}
+                    initial={{ opacity: 0, scale: 1.1 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    transition={{ duration: 0.7 }}
+                    className="w-full h-auto"
+                  />
+                </AnimatePresence>
+                
+                {/* Slide indicators */}
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+                  {welcomeImages.map((_, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setCurrentSlide(index)}
+                      className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                        index === currentSlide 
+                          ? "bg-primary w-8" 
+                          : "bg-white/50 hover:bg-white/80"
+                      }`}
+                      aria-label={`Go to slide ${index + 1}`}
+                    />
+                  ))}
+                </div>
               </div>
-            </motion.div>
-          ))}
+            </div>
+          </motion.div>
+
+          {/* Benefits Section - Right on desktop, Bottom on mobile */}
+          <motion.div
+            initial={{ opacity: 0, x: 30 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="space-y-6"
+          >
+            <div className="space-y-4">
+              {appBenefits.map((benefit, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.1, duration: 0.5 }}
+                  className="group p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-background to-background/50 border border-border hover:border-primary/50 transition-all duration-300 hover:shadow-lg hover:shadow-primary/10"
+                >
+                  <div className="flex items-start gap-4">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center flex-shrink-0 group-hover:bg-primary/20 group-hover:scale-110 transition-all duration-300">
+                      <benefit.icon className="w-5 h-5 sm:w-6 sm:h-6 text-primary" strokeWidth={2} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-base sm:text-lg font-bold mb-1 group-hover:text-primary transition-colors">
+                        {benefit.title}
+                      </h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed">
+                        {benefit.description}
+                      </p>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
         </div>
       </section>
 

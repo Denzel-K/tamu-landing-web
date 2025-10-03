@@ -13,8 +13,8 @@ export const ExperienceSwitcher = ({ currentView, onSwitch }: ExperienceSwitcher
   return (
     <section className="relative py-24 overflow-hidden">
       {/* Background gradient */}
-      <div className="absolute inset-0 bg-gradient-to-b from-background via-primary/5 to-background" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,hsl(var(--primary)/0.1),transparent_70%)]" />
+      {/* <div className="absolute inset-0 bg-gradient-to-b from-background via-primary/5 to-background" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,hsl(var(--primary)/0.1),transparent_70%)]" /> */}
 
       <div className="container mx-auto px-6 relative z-10">
         <motion.div
