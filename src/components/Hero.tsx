@@ -104,9 +104,10 @@ export const Hero = ({ onSelectView, selectedView }: HeroProps) => {
                 <h1 className="text-3xl sm:text-4xl md:text-6xl font-bold mb-2 sm:mb-3 bg-gradient-to-r from-primary via-primary/80 to-primary bg-clip-text text-transparent">
                   TAMU
                 </h1>
-                <p className="text-base sm:text-lg md:text-xl text-muted-foreground font-medium">
+                <p className="text-xs sm:text-sm text-muted-foreground font-medium">
                   Digital Platform for African Cuisine
                 </p>
+                <p className="text-lg sm:text-xl md:text-2xl text-muted-foreground font-medium text-primary">"It pays to Eat & Experience"</p>
               </motion.div>
 
               {/* Subtitle */}
@@ -163,9 +164,9 @@ export const Hero = ({ onSelectView, selectedView }: HeroProps) => {
                       <img
                         src={restaurantCustomers}
                         alt="Customer App"
-                        className="w-full h-full object-cover opacity-40 group-hover:opacity-60 group-hover:scale-110 transition-all duration-700"
+                        className="w-full h-full object-cover opacity-40 group-hover:opacity-80 group-hover:scale-110 transition-all duration-700"
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent" />
                     </div>
 
                     {/* Card Content */}
@@ -229,9 +230,9 @@ export const Hero = ({ onSelectView, selectedView }: HeroProps) => {
                       <img
                         src={restaurantStaff}
                         alt="Business Portal"
-                        className="w-full h-full object-cover opacity-40 group-hover:opacity-60 group-hover:scale-110 transition-all duration-700"
+                        className="w-full h-full object-cover opacity-40 group-hover:opacity-80 group-hover:scale-110 transition-all duration-700"
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
                     </div>
 
                     {/* Card Content */}
@@ -334,7 +335,7 @@ export const Hero = ({ onSelectView, selectedView }: HeroProps) => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1.2 }}
-          className="absolute bottom-8 left-1/2 -translate-x-1/2"
+          className="absolute bottom-8 left-1/2 -translate-x-1/md:text-base2"
         >
           <motion.div
             animate={{ y: [0, 10, 0] }}

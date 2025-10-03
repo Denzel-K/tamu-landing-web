@@ -42,10 +42,13 @@ export const Header = ({ selectedView, onSwitchExperience }: HeaderProps) => {
         <div className="container mx-auto px-6">
           <div className="flex items-center justify-between h-20">
             {/* Left: Logo and Brand */}
-            <div className="flex items-center -ml-4">
+            <button 
+              onClick={() => window.location.reload()}
+              className="flex items-center -ml-4 hover:opacity-80 transition-opacity cursor-pointer"
+            >
               <TamuLogo size="md" />
               <span className="text-lg -ml-2 sm:text-2xl font-bold text-primary">TAMU</span>
-            </div>
+            </button>
 
             {/* Right: Action Buttons */}
             <div className="flex items-center gap-3">
