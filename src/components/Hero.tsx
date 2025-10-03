@@ -4,8 +4,8 @@ import { motion, AnimatePresence } from "framer-motion"
 import { Smartphone, Monitor } from "lucide-react"
 import restaurantStaff from "@/assets/restaurant-staff.png"
 import restaurantCustomers from "@/assets/restaurant-customers.png"
-import mobileWelcome1 from "@/assets/mobile-welcome-1.jpeg"
-import businessDashboard from "@/assets/business-dashboard.png"
+import mobileWelcome1 from "@/assets/restaurant-customers.png"
+import businessDashboard from "@/assets/restaurant-staff.png"
 
 interface HeroProps {
   onSelectView: (view: "mobile" | "web") => void
@@ -21,7 +21,7 @@ export const Hero = ({ onSelectView, selectedView }: HeroProps) => {
       : "Find authentic African dining experiences, order food, and earn rewards at your favorite local restaurants"
 
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
+    <section className="relative min-h-screen flex items-center justify-center overflow-y-auto">
       {/* Animated background layers */}
       <AnimatePresence mode="wait">
         {selectedView && (
