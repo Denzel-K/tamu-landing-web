@@ -8,22 +8,23 @@ import { ExperienceSwitcher } from "@/components/ExperienceSwitcher"
 import { MobileShowcase } from "@/components/MobileShowcase"
 import { WebShowcase } from "@/components/WebShowcase"
 import { CTASection } from "@/components/CTASection"
+import { TamuLogo } from "@/components/TamuLogo"
 
 const Index = () => {
   const [selectedView, setSelectedView] = useState<"mobile" | "web" | null>(null)
   const [scrollEnabled, setScrollEnabled] = useState(false)
 
   useEffect(() => {
-    // Disable scroll when no view is selected
-    if (!selectedView) {
-      document.body.style.overflow = "hidden"
-      setScrollEnabled(false)
-    } else {
-      // Small delay before enabling scroll for smooth transition
+    // Enable scroll always - Hero is now scrollable in default state
+    document.body.style.overflow = "auto"
+    
+    if (selectedView) {
+      // Small delay before enabling content scroll for smooth transition
       setTimeout(() => {
-        document.body.style.overflow = "auto"
         setScrollEnabled(true)
       }, 800)
+    } else {
+      setScrollEnabled(false)
     }
 
     return () => {
@@ -70,13 +71,9 @@ const Index = () => {
                 <div className="grid md:grid-cols-4 gap-12 mb-12">
                   {/* Brand */}
                   <div className="md:col-span-2">
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center">
-                        <svg viewBox="0 0 24 24" className="w-7 h-7 text-primary-foreground" fill="currentColor">
-                          <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5zm0 18.5c-3.86-.93-6.5-4.56-6.5-8.5V8.31l6.5-3.25 6.5 3.25V12c0 3.94-2.64 7.57-6.5 8.5z" />
-                        </svg>
-                      </div>
-                      <span className="text-3xl font-bold text-primary">TAMU</span>
+                    <div className="flex items-center mb-4 -ml-4">
+                      <TamuLogo size="md" />
+                      <span className="text-3xl font-bold text-primary -ml-2">TAMU</span>
                     </div>
                     <p className="text-muted-foreground mb-4 max-w-md">
                       Empowering African food businesses and connecting communities through innovative digital

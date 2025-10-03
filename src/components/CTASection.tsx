@@ -1,12 +1,17 @@
 import { motion } from "framer-motion";
-import { ExternalLink, Apple, Smartphone } from "lucide-react";
+import { useState } from "react";
+import { ExternalLink, Apple, Smartphone, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ApkDownloadModal } from "@/components/ApkDownloadModal";
+import appConfig from "@/config/app-config.json";
 
 interface CTASectionProps {
   selectedView: "mobile" | "web" | null;
 }
 
 export const CTASection = ({ selectedView }: CTASectionProps) => {
+  const [isApkModalOpen, setIsApkModalOpen] = useState(false);
+
   return (
     <section className="relative py-24 overflow-hidden">
       {/* Background gradient */}
@@ -47,25 +52,6 @@ export const CTASection = ({ selectedView }: CTASectionProps) => {
                   </Button>
                 </motion.a>
               </div>
-
-              <motion.div
-                initial={{ opacity: 0 }}
-                whileInView={{ opacity: 1 }}
-                viewport={{ once: true }}
-                transition={{ delay: 0.3, duration: 0.6 }}
-                className="mt-12 grid md:grid-cols-3 gap-6 text-left"
-              >
-                {[
-                  { title: "Order Management", desc: "Track and manage all orders in real-time" },
-                  { title: "Analytics Dashboard", desc: "Gain insights into your business performance" },
-                  { title: "Customer Engagement", desc: "Build loyalty and grow your customer base" }
-                ].map((feature, i) => (
-                  <div key={i} className="p-6 rounded-xl glass-effect border border-border/50">
-                    <h3 className="font-bold text-lg mb-2 text-primary">{feature.title}</h3>
-                    <p className="text-sm text-muted-foreground">{feature.desc}</p>
-                  </div>
-                ))}
-              </motion.div>
             </>
           ) : selectedView === "mobile" ? (
             <>
@@ -77,36 +63,58 @@ export const CTASection = ({ selectedView }: CTASectionProps) => {
               </p>
 
               <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
-                <motion.a
-                  href="#"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="inline-block"
-                >
-                  <Button
-                    size="lg"
-                    className="text-lg px-8 py-6 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-xl shadow-lg shadow-primary/30"
-                  >
-                    <Apple className="mr-2 w-6 h-6" />
-                    App Store
-                  </Button>
-                </motion.a>
+                {appConfig.isOfficial ? (
+                  <>
+                    <motion.a
+                      href={appConfig.appleStoreLink || "#"}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      className="inline-block"
+                    >
+                      <Button
+                        size="lg"
+                        className="text-lg px-8 py-6 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-xl shadow-lg shadow-primary/30"
+                        disabled={!appConfig.appleStoreLink}
+                      >
+                        <Apple className="mr-2 w-6 h-6" />
+                        App Store
+                      </Button>
+                    </motion.a>
 
-                <motion.a
-                  href="#"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="inline-block"
-                >
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    className="text-lg px-8 py-6 border-2 border-primary bg-background/50 text-foreground hover:bg-primary/10 font-semibold rounded-xl"
+                    <motion.a
+                      href={appConfig.playStoreLink || "#"}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      className="inline-block"
+                    >
+                      <Button
+                        size="lg"
+                        variant="outline"
+                        className="text-lg px-8 py-6 border-2 border-primary bg-background/50 text-foreground hover:bg-primary/10 font-semibold rounded-xl"
+                        disabled={!appConfig.playStoreLink}
+                      >
+                        <Smartphone className="mr-2 w-6 h-6" />
+                        Google Play
+                      </Button>
+                    </motion.a>
+                  </>
+                ) : (
+                  <motion.button
+                    onClick={() => setIsApkModalOpen(true)}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="inline-block"
                   >
-                    <Smartphone className="mr-2 w-6 h-6" />
-                    Google Play
-                  </Button>
-                </motion.a>
+                    <Button
+                      size="lg"
+                      className="text-lg px-8 py-6 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-xl shadow-lg shadow-primary/30"
+                      disabled={!appConfig.apkLink}
+                    >
+                      <Download className="mr-2 w-6 h-6" />
+                      Download APK Build
+                    </Button>
+                  </motion.button>
+                )}
               </div>
 
               <motion.div
@@ -128,15 +136,17 @@ export const CTASection = ({ selectedView }: CTASectionProps) => {
                 ))}
               </motion.div>
 
-              <motion.p
-                initial={{ opacity: 0 }}
-                whileInView={{ opacity: 1 }}
-                viewport={{ once: true }}
-                transition={{ delay: 0.4, duration: 0.6 }}
-                className="mt-8 text-sm text-muted-foreground"
-              >
-                Coming soon to iOS and Android
-              </motion.p>
+              {!appConfig.isOfficial && (
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  whileInView={{ opacity: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: 0.4, duration: 0.6 }}
+                  className="mt-8 text-sm text-muted-foreground"
+                >
+                  Coming soon to iOS and Android
+                </motion.p>
+              )}
             </>
           ) : (
             <>
@@ -182,6 +192,9 @@ export const CTASection = ({ selectedView }: CTASectionProps) => {
           )}
         </motion.div>
       </div>
+
+      {/* APK Download Modal */}
+      <ApkDownloadModal isOpen={isApkModalOpen} onClose={() => setIsApkModalOpen(false)} />
     </section>
   );
 };

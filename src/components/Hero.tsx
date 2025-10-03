@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from "framer-motion"
 import { Smartphone, Monitor, Pizza, Beef, Donut, UtensilsCrossed, Soup, CookingPot, MapPin, ShoppingBag, Sparkles, BarChart3, Users, Settings } from "lucide-react"
+import { TamuLogo } from "@/components/TamuLogo"
 import restaurantStaff from "@/assets/restaurant-staff.png"
 import restaurantCustomers from "@/assets/restaurant-customers.png"
 
@@ -49,7 +50,7 @@ export const Hero = ({ onSelectView, selectedView }: HeroProps) => {
   }
 
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-y-auto py-8 sm:py-12">
+    <section className="relative min-h-screen flex items-center justify-center py-8 sm:py-12">
       {/* Animated Food Icon Background */}
       <div className="absolute inset-0 overflow-hidden">
         {/* Gradient overlay - reduced opacity to show patterns */}
@@ -99,12 +100,8 @@ export const Hero = ({ onSelectView, selectedView }: HeroProps) => {
                 transition={{ delay: 0.2, duration: 0.6 }}
                 className="mb-6 sm:mb-8"
               >
-                <div className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-3xl bg-primary mb-3 sm:mb-4 shadow-lg shadow-primary/50">
-                  <svg viewBox="0 0 24 24" className="w-10 h-10 sm:w-12 sm:h-12 text-primary-foreground" fill="currentColor">
-                    <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5zm0 18.5c-3.86-.93-6.5-4.56-6.5-8.5V8.31l6.5-3.25 6.5 3.25V12c0 3.94-2.64 7.57-6.5 8.5z" />
-                  </svg>
-                </div>
-                <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold mb-2 sm:mb-3 bg-gradient-to-r from-primary via-primary/80 to-primary bg-clip-text text-transparent">
+                <TamuLogo size="xl" className="mx-auto" />
+                <h1 className="text-3xl sm:text-4xl md:text-6xl font-bold mb-2 sm:mb-3 bg-gradient-to-r from-primary via-primary/80 to-primary bg-clip-text text-transparent">
                   TAMU
                 </h1>
                 <p className="text-base sm:text-lg md:text-xl text-muted-foreground font-medium">
@@ -136,7 +133,7 @@ export const Hero = ({ onSelectView, selectedView }: HeroProps) => {
                   </p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 sm:gap-4 md:gap-6 max-w-5xl mx-auto">
+                <div className="grid grid-cols-2 gap-2 sm:gap-4 md:gap-6 max-w-5xl mx-auto">
                   {/* Customer App Card */}
                   <motion.button
                     onClick={() => onSelectView("mobile")}
@@ -172,7 +169,7 @@ export const Hero = ({ onSelectView, selectedView }: HeroProps) => {
                     </div>
 
                     {/* Card Content */}
-                    <div className="relative z-10 p-3 sm:p-4 md:p-6 space-y-3 sm:space-y-4">
+                    <div className="relative z-10 p-[8px] sm:p-4 md:p-6 space-y-3 sm:space-y-4">
                       <div className="w-12 h-12 sm:w-14 sm:h-14 mx-auto rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center group-hover:bg-primary/20 group-hover:border-primary/40 transition-all duration-300 group-hover:rotate-6">
                         <Smartphone className="w-6 h-6 sm:w-7 sm:h-7 text-primary" strokeWidth={2} />
                       </div>
@@ -180,12 +177,12 @@ export const Hero = ({ onSelectView, selectedView }: HeroProps) => {
                         <h3 className="text-base sm:text-lg md:text-xl font-bold mb-1 sm:mb-2 group-hover:text-primary transition-colors">
                           Customer App
                         </h3>
-                        <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed mb-2 sm:mb-3">
+                        <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed mb-4 sm:mb-6">
                           Discover and enjoy local cuisine
                         </p>
                         
                         {/* Feature List */}
-                        <ul className="text-left space-y-1 sm:space-y-1.5 text-xs text-muted-foreground/80">
+                        <ul className="hidden sm:block text-left space-y-1 sm:space-y-1.5 text-xs text-muted-foreground/80">
                           <li className="flex items-start gap-1.5">
                             <MapPin className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-primary flex-shrink-0 mt-0.5" />
                             <span>Find nearby restaurants</span>
@@ -238,7 +235,7 @@ export const Hero = ({ onSelectView, selectedView }: HeroProps) => {
                     </div>
 
                     {/* Card Content */}
-                    <div className="relative z-10 p-3 sm:p-4 md:p-6 space-y-3 sm:space-y-4">
+                    <div className="relative z-10 p-[8px] sm:p-4 md:p-6 space-y-3 sm:space-y-4">
                       <div className="w-12 h-12 sm:w-14 sm:h-14 mx-auto rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center group-hover:bg-primary/20 group-hover:border-primary/40 transition-all duration-300 group-hover:rotate-6">
                         <Monitor className="w-6 h-6 sm:w-7 sm:h-7 text-primary" strokeWidth={2} />
                       </div>
@@ -246,12 +243,12 @@ export const Hero = ({ onSelectView, selectedView }: HeroProps) => {
                         <h3 className="text-base sm:text-lg md:text-xl font-bold mb-1 sm:mb-2 group-hover:text-primary transition-colors">
                           Business Portal
                         </h3>
-                        <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed mb-2 sm:mb-3">
+                        <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed mb-4 sm:mb-6">
                           Manage and grow your business
                         </p>
                         
                         {/* Feature List */}
-                        <ul className="text-left space-y-1 sm:space-y-1.5 text-xs text-muted-foreground/80">
+                        <ul className="hidden sm:block text-left space-y-1 sm:space-y-1.5 text-xs text-muted-foreground/80">
                           <li className="flex items-start gap-1.5">
                             <BarChart3 className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-primary flex-shrink-0 mt-0.5" />
                             <span>Analytics & insights</span>

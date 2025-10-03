@@ -2,8 +2,11 @@
 
 import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { ExternalLink, Apple, Smartphone, ArrowLeftRight } from "lucide-react"
+import { ExternalLink, Apple, Smartphone, ArrowLeftRight, Download } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { ApkDownloadModal } from "@/components/ApkDownloadModal"
+import { TamuLogo } from "@/components/TamuLogo"
+import appConfig from "@/config/app-config.json"
 
 interface HeaderProps {
   selectedView: "mobile" | "web" | null
@@ -12,6 +15,7 @@ interface HeaderProps {
 
 export const Header = ({ selectedView, onSwitchExperience }: HeaderProps) => {
   const [scrolled, setScrolled] = useState(false)
+  const [isApkModalOpen, setIsApkModalOpen] = useState(false)
 
   useEffect(() => {
     const handleScroll = () => {
@@ -38,13 +42,9 @@ export const Header = ({ selectedView, onSwitchExperience }: HeaderProps) => {
         <div className="container mx-auto px-6">
           <div className="flex items-center justify-between h-20">
             {/* Left: Logo and Brand */}
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
-                <svg viewBox="0 0 24 24" className="w-6 h-6 text-primary-foreground" fill="currentColor">
-                  <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5zm0 18.5c-3.86-.93-6.5-4.56-6.5-8.5V8.31l6.5-3.25 6.5 3.25V12c0 3.94-2.64 7.57-6.5 8.5z" />
-                </svg>
-              </div>
-              <span className="text-2xl font-bold text-primary">TAMU</span>
+            <div className="flex items-center -ml-4">
+              <TamuLogo size="md" />
+              <span className="text-lg -ml-2 sm:text-2xl font-bold text-primary">TAMU</span>
             </div>
 
             {/* Right: Action Buttons */}
@@ -58,46 +58,61 @@ export const Header = ({ selectedView, onSwitchExperience }: HeaderProps) => {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
-                  <Button size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold">
-                    Launch Business Dashboard
+                  <Button size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-[6px]">
+                    <span className="hidden sm:inline">Launch Business Dashboard</span>
+                    <span className="sm:hidden text-xs">Launch Portal</span>
                     <ExternalLink className="ml-2 w-4 h-4" />
                   </Button>
                 </motion.a>
               ) : (
                 <div className="flex items-center gap-2">
-                  <motion.a href="#" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="border-primary/50 hover:bg-primary/10 bg-transparent"
-                    >
-                      <Apple className="mr-2 w-4 h-4" />
-                      <span className="hidden sm:inline">App Store</span>
-                    </Button>
-                  </motion.a>
-                  <motion.a href="#" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                    <Button size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground">
-                      <Smartphone className="mr-2 w-4 h-4" />
-                      <span className="hidden sm:inline">Play Store</span>
-                    </Button>
-                  </motion.a>
+                  {appConfig.isOfficial ? (
+                    <>
+                      <motion.a href={appConfig.appleStoreLink || "#"} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                        <Button
+                          size="sm"
+                          className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                          disabled={!appConfig.appleStoreLink}
+                        >
+                          <Apple className="w-4 h-4 sm:mr-2" />
+                          <span className="hidden sm:inline">App Store</span>
+                        </Button>
+                      </motion.a>
+                      <motion.a href={appConfig.playStoreLink || "#"} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                        <Button size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground" disabled={!appConfig.playStoreLink}>
+                          <Smartphone className="w-4 h-4 sm:mr-2" />
+                          <span className="hidden sm:inline">Play Store</span>
+                        </Button>
+                      </motion.a>
+                    </>
+                  ) : (
+                    <motion.button onClick={() => setIsApkModalOpen(true)} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                      <Button size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground" disabled={!appConfig.apkLink}>
+                        <Download className="w-4 h-4 sm:mr-2" />
+                        <span className="hidden sm:inline">Download APK</span>
+                      </Button>
+                    </motion.button>
+                  )}
                 </div>
               )}
 
               {/* Switch Experience Button */}
               <motion.button onClick={onSwitchExperience} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                <Button size="sm" variant="ghost" className="border border-border hover:border-primary">
-                  <ArrowLeftRight className="mr-2 w-4 h-4" />
+                <Button size="sm" variant="ghost" className="border border-border hover:border-primary px-[6px] sm:px[10px]">
+                  <ArrowLeftRight className="w-4 h-4" />
                   <span className="hidden md:inline">
                     {selectedView === "web" ? "Switch to Customer Experience" : "Switch to Business Experience"}
                   </span>
-                  <span className="md:hidden">Switch</span>
+                  <span className="md:hidden text-xs">Switch</span>
                 </Button>
               </motion.button>
             </div>
           </div>
         </div>
       </motion.header>
+      
+      {/* APK Download Modal */}
+      <ApkDownloadModal isOpen={isApkModalOpen} onClose={() => setIsApkModalOpen(false)} />
     </AnimatePresence>
   )
 }

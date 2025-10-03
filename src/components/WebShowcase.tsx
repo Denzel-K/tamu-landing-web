@@ -1,9 +1,28 @@
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import { useState, useEffect } from "react";
 import businessDashboard from "@/assets/business-dashboard.png";
 import businessLogin from "@/assets/business-login.png";
+import menuManagement from "@/assets/menu-management.png";
+import staffManagement from "@/assets/staff-management.png";
 import { LayoutDashboard, ShoppingBag, Calendar, Users, BarChart3, Settings } from "lucide-react";
 
 export const WebShowcase = () => {
+  const [currentSlide, setCurrentSlide] = useState(0);
+
+  const managementScreens = [
+    { image: businessDashboard, title: "Unified Dashboard", description: "Complete overview of your business" },
+    { image: menuManagement, title: "Menu Management", description: "Easily manage your menu items and pricing" },
+    { image: staffManagement, title: "Staff Management", description: "Organize and manage your team efficiently" },
+  ];
+
+  // Auto-advance slideshow
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % managementScreens.length);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, []);
+
   const features = [
     {
       icon: LayoutDashboard,
@@ -56,7 +75,7 @@ export const WebShowcase = () => {
           </p>
         </motion.div>
 
-        {/* Main Dashboard Preview */}
+        {/* Main Dashboard Preview - Slideshow */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -66,12 +85,69 @@ export const WebShowcase = () => {
         >
           <div className="relative">
             <div className="absolute -inset-8 bg-primary/10 blur-3xl rounded-full" />
-            <div className="relative rounded-2xl overflow-hidden border-2 border-border glow-border">
-              <img
-                src={businessDashboard}
-                alt="Business Dashboard"
-                className="w-full h-auto"
-              />
+            <div className="relative rounded-2xl overflow-hidden border-2 border-primary/20 shadow-2xl shadow-primary/10">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={currentSlide}
+                  initial={{ opacity: 0, x: 100 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -100 }}
+                  transition={{ duration: 0.5 }}
+                  className="relative"
+                >
+                  <img
+                    src={managementScreens[currentSlide].image}
+                    alt={managementScreens[currentSlide].title}
+                    className="w-full h-auto"
+                  />
+                  
+                  {/* Slide caption overlay */}
+                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-background via-background/90 to-transparent p-6 sm:p-8">
+                    <h3 className="text-xl sm:text-2xl font-bold mb-1 text-primary">
+                      {managementScreens[currentSlide].title}
+                    </h3>
+                    <p className="text-sm sm:text-base text-muted-foreground">
+                      {managementScreens[currentSlide].description}
+                    </p>
+                  </div>
+                </motion.div>
+              </AnimatePresence>
+              
+              {/* Slide indicators */}
+              <div className="absolute top-4 right-4 flex gap-2">
+                {managementScreens.map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setCurrentSlide(index)}
+                    className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                      index === currentSlide 
+                        ? "bg-primary w-8" 
+                        : "bg-white/50 hover:bg-white/80"
+                    }`}
+                    aria-label={`Go to slide ${index + 1}`}
+                  />
+                ))}
+              </div>
+
+              {/* Navigation arrows */}
+              <button
+                onClick={() => setCurrentSlide((prev) => (prev - 1 + managementScreens.length) % managementScreens.length)}
+                className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-background/80 border border-primary/30 flex items-center justify-center hover:bg-primary/20 transition-all duration-300 group"
+                aria-label="Previous slide"
+              >
+                <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+              <button
+                onClick={() => setCurrentSlide((prev) => (prev + 1) % managementScreens.length)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-background/80 border border-primary/30 flex items-center justify-center hover:bg-primary/20 transition-all duration-300 group"
+                aria-label="Next slide"
+              >
+                <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
             </div>
           </div>
         </motion.div>
@@ -79,7 +155,7 @@ export const WebShowcase = () => {
 
       {/* Features Grid */}
       <section className="container mx-auto px-6">
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 md:gap-6 max-w-6xl mx-auto">
           {features.map((feature, index) => (
             <motion.div
               key={index}
@@ -87,13 +163,16 @@ export const WebShowcase = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: index * 0.1, duration: 0.5 }}
-              className="group p-6 rounded-2xl glass-effect border border-border hover:border-primary transition-all duration-300"
+              className="group p-4 sm:p-5 rounded-xl sm:rounded-2xl glass-effect border border-border hover:border-primary transition-all duration-300"
             >
-              <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center mb-4 group-hover:bg-primary/30 transition-colors">
-                <feature.icon className="w-6 h-6 text-primary" />
+              {/* Title and Icon on same line */}
+              <div className="flex items-center justify-between gap-3 mb-3">
+                <h3 className="text-base sm:text-lg md:text-xl font-bold flex-1 line-clamp-2">{feature.title}</h3>
+                <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-primary/20 flex items-center justify-center flex-shrink-0 group-hover:bg-primary/30 group-hover:scale-110 transition-all duration-300">
+                  <feature.icon className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
+                </div>
               </div>
-              <h3 className="text-xl font-bold mb-2">{feature.title}</h3>
-              <p className="text-muted-foreground">{feature.description}</p>
+              <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">{feature.description}</p>
             </motion.div>
           ))}
         </div>
