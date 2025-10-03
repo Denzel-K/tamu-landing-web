@@ -73,7 +73,7 @@ const Index = () => {
                   <div className="md:col-span-2">
                     <div className="flex items-center mb-4 -ml-4">
                       <TamuLogo size="md" />
-                      <span className="text-3xl font-bold text-primary -ml-2">TAMU</span>
+                      <span className="text-2xl sm:text-3xl font-bold text-primary -ml-2">TAMU</span>
                     </div>
                     <p className="text-muted-foreground mb-4 max-w-md">
                       Empowering African food businesses and connecting communities through innovative digital

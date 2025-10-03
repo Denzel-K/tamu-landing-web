@@ -24,8 +24,8 @@ export const ExperienceSwitcher = ({ currentView, onSwitch }: ExperienceSwitcher
           transition={{ duration: 0.6 }}
           className="max-w-4xl mx-auto text-center"
         >
-          <h2 className="text-3xl md:text-5xl font-bold mb-4 glow-text">Explore Both Experiences</h2>
-          <p className="text-lg text-muted-foreground mb-12">
+          <h2 className="text-2xl sm:text-3xl md:text-5xl font-bold mb-4 glow-text">Explore Both Experiences</h2>
+          <p className="text-base sm:text-lg text-muted-foreground mb-12">
             {currentView === "web"
               ? "See how customers discover and order from your business"
               : "Discover the powerful tools available for business owners"}

@@ -61,7 +61,7 @@ export const Header = ({ selectedView, onSwitchExperience }: HeaderProps) => {
                   <Button size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-[6px]">
                     <span className="hidden sm:inline">Launch Business Dashboard</span>
                     <span className="sm:hidden text-xs">Launch Portal</span>
-                    <ExternalLink className="ml-2 w-4 h-4" />
+                    <ExternalLink className="w-4 h-4" />
                   </Button>
                 </motion.a>
               ) : (

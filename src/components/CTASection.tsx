@@ -28,10 +28,10 @@ export const CTASection = ({ selectedView }: CTASectionProps) => {
         >
           {selectedView === "web" ? (
             <>
-              <h2 className="text-4xl md:text-6xl font-bold mb-6 glow-text">
+              <h2 className="text-3xl md:text-6xl font-bold mb-6 glow-text">
                 Ready to Transform Your Food Business?
               </h2>
-              <p className="text-xl text-muted-foreground mb-12">
+              <p className="text-base sm:text-xl text-muted-foreground mb-12">
                 Join the TAMU platform and bring your culinary vision to life with our powerful business management tools
               </p>
 
@@ -45,7 +45,7 @@ export const CTASection = ({ selectedView }: CTASectionProps) => {
                 >
                   <Button
                     size="lg"
-                    className="text-lg px-8 py-6 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-xl shadow-lg shadow-primary/30"
+                    className="text-sm sm:text-base px-8 py-6 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-xl shadow-lg shadow-primary/30"
                   >
                     Launch Business Portal
                     <ExternalLink className="ml-2 w-5 h-5" />
@@ -55,7 +55,7 @@ export const CTASection = ({ selectedView }: CTASectionProps) => {
             </>
           ) : selectedView === "mobile" ? (
             <>
-              <h2 className="text-4xl md:text-6xl font-bold mb-6 glow-text">
+              <h2 className="text-3xl md:text-5xl font-bold mb-6 glow-text">
                 Download the TAMU App Today
               </h2>
               <p className="text-xl text-muted-foreground mb-12">
@@ -107,7 +107,7 @@ export const CTASection = ({ selectedView }: CTASectionProps) => {
                   >
                     <Button
                       size="lg"
-                      className="text-lg px-8 py-6 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-xl shadow-lg shadow-primary/30"
+                      className="text-sm sm:text-lg px-8 py-6 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-xl shadow-lg shadow-primary/30"
                       disabled={!appConfig.apkLink}
                     >
                       <Download className="mr-2 w-6 h-6" />
@@ -116,25 +116,6 @@ export const CTASection = ({ selectedView }: CTASectionProps) => {
                   </motion.button>
                 )}
               </div>
-
-              <motion.div
-                initial={{ opacity: 0 }}
-                whileInView={{ opacity: 1 }}
-                viewport={{ once: true }}
-                transition={{ delay: 0.3, duration: 0.6 }}
-                className="mt-12 grid md:grid-cols-3 gap-6 text-left"
-              >
-                {[
-                  { title: "Discover Restaurants", desc: "Find authentic African dining experiences nearby" },
-                  { title: "Easy Ordering", desc: "Order food for pickup or delivery with ease" },
-                  { title: "Earn Rewards", desc: "Get rewarded for every purchase you make" }
-                ].map((feature, i) => (
-                  <div key={i} className="p-6 rounded-xl glass-effect border border-border/50">
-                    <h3 className="font-bold text-lg mb-2 text-primary">{feature.title}</h3>
-                    <p className="text-sm text-muted-foreground">{feature.desc}</p>
-                  </div>
-                ))}
-              </motion.div>
 
               {!appConfig.isOfficial && (
                 <motion.p

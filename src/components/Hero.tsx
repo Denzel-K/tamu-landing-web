@@ -281,20 +281,20 @@ export const Hero = ({ onSelectView, selectedView }: HeroProps) => {
                   initial={{ opacity: 0, x: -40 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.8, delay: 0.5 }}
-                  className="text-left space-y-6"
+                  className="sm:text-left space-y-6"
                 >
-                  <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-primary/10 border border-primary/30">
+                  <div className="inline-flex items-center gap-2 px-2 py-[6px] sm:gap-3 sm:px-4 sm:py-2 rounded-full bg-primary/10 border border-primary/30">
                     {selectedView === "web" ? (
                       <Monitor className="w-5 h-5 text-primary" />
                     ) : (
                       <Smartphone className="w-5 h-5 text-primary" />
                     )}
-                    <span className="text-sm font-semibold text-primary">
+                    <span className="text-xs sm:text-sm font-semibold text-primary">
                       {selectedView === "web" ? "Business Portal" : "Customer App"}
                     </span>
                   </div>
 
-                  <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight bg-gradient-to-r from-primary via-primary/80 to-primary bg-clip-text text-transparent">
+                  <h1 className="text-3xl sm:text-5xl lg:text-6xl font-bold leading-tight bg-gradient-to-r from-primary via-primary/80 to-primary bg-clip-text text-transparent">
                     {heroTitle}
                   </h1>
 

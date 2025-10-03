@@ -67,10 +67,10 @@ export const WebShowcase = () => {
           transition={{ duration: 0.6 }}
           className="text-center mb-16"
         >
-          <h2 className="text-4xl md:text-5xl font-bold mb-4 glow-text">
+          <h2 className="text-3xl md:text-5xl font-bold mb-4 glow-text">
             Complete Business Management
           </h2>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
             Everything you need to manage, grow, and thrive in today's digital market
           </p>
         </motion.div>
@@ -102,11 +102,11 @@ export const WebShowcase = () => {
                   />
                   
                   {/* Slide caption overlay */}
-                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-background via-background/90 to-transparent p-6 sm:p-8">
-                    <h3 className="text-xl sm:text-2xl font-bold mb-1 text-primary">
+                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-background via-background/90 to-transparent px-2 pb-4 pt-10 sm:py-8 sm:px-6">
+                    <h3 className="text-lg sm:text-2xl font-bold mb-1 text-primary">
                       {managementScreens[currentSlide].title}
                     </h3>
-                    <p className="text-sm sm:text-base text-muted-foreground">
+                    <p className="text-xs sm:text-base text-muted-foreground">
                       {managementScreens[currentSlide].description}
                     </p>
                   </div>
@@ -132,7 +132,7 @@ export const WebShowcase = () => {
               {/* Navigation arrows */}
               <button
                 onClick={() => setCurrentSlide((prev) => (prev - 1 + managementScreens.length) % managementScreens.length)}
-                className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-background/80 border border-primary/30 flex items-center justify-center hover:bg-primary/20 transition-all duration-300 group"
+                className="absolute -left-4 sm:left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-background/80 border border-primary/30 flex items-center justify-center hover:bg-primary/20 transition-all duration-300 group"
                 aria-label="Previous slide"
               >
                 <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -141,7 +141,7 @@ export const WebShowcase = () => {
               </button>
               <button
                 onClick={() => setCurrentSlide((prev) => (prev + 1) % managementScreens.length)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-background/80 border border-primary/30 flex items-center justify-center hover:bg-primary/20 transition-all duration-300 group"
+                className="absolute -right-4 sm:right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-background/80 border border-primary/30 flex items-center justify-center hover:bg-primary/20 transition-all duration-300 group"
                 aria-label="Next slide"
               >
                 <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
