@@ -89,7 +89,7 @@ export const MobileShowcase = () => {
       setCurrentSlide((prev) => (prev + 1) % welcomeImages.length);
     }, 4000);
     return () => clearInterval(timer);
-  }, []);
+  }, [welcomeImages.length]);
 
   return (
     <div className="space-y-24 py-24">
