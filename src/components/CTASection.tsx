@@ -115,6 +115,21 @@ export const CTASection = ({ selectedView }: CTASectionProps) => {
                     </Button>
                   </motion.button>
                 )}
+                {/* In-restaurant mode CTA */}
+                <motion.a
+                  href="/discover"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="inline-block"
+                >
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="text-sm sm:text-lg px-8 py-6 border-2 border-primary bg-background/50 text-foreground hover:bg-primary/10 font-semibold rounded-xl"
+                  >
+                    Try In‑Restaurant Mode
+                  </Button>
+                </motion.a>
               </div>
 
               {!appConfig.isOfficial && (

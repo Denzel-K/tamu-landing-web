@@ -1,0 +1,136 @@
+import { useEffect, useRef, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { connectSocket, type SocketConnectionState } from "@/lib/realtime/socketClient";
+
+// Placeholder type; wire to real reservation fetch if available later
+interface ReservationItem { name: string; quantity: number; price?: number }
+interface Reservation { id: string; restaurant?: { id: string; name?: string }; type?: string; partySize?: number; date?: string; time?: string; status?: string; items?: ReservationItem[] }
+
+async function fetchReservationByIdWeb(id: string): Promise<Reservation | null> {
+  // If/when a public reservation fetch endpoint is available, wire it here.
+  // Using order-like structure for now.
+  try {
+    const res = await fetch(`/api/reservations/${encodeURIComponent(id)}`, { credentials: 'include' });
+    if (!res.ok) return null;
+    const json = await res.json();
+    return json?.reservation || null;
+  } catch {
+    return null;
+  }
+}
+
+export default function ReservationConfirmation() {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const [reservation, setReservation] = useState<Reservation | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [connState, setConnState] = useState<SocketConnectionState>('idle');
+  const socketRef = useRef(null);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      if (!id) return;
+      setLoading(true);
+      setError(null);
+      try {
+        const r = await fetchReservationByIdWeb(id);
+        if (!mounted) return;
+        setReservation(r);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : 'Failed to load reservation';
+        setError(msg);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
+    return () => { mounted = false; };
+  }, [id]);
+
+  // Realtime + polling fallback
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      if (!id) return;
+      try {
+        setConnState('connecting');
+        const socket = await connectSocket('/ws');
+        if (!mounted) return;
+        socketRef.current = socket;
+        socket.on('connect', () => setConnState('connected'));
+        socket.on('disconnect', () => setConnState('disconnected'));
+        socket.on('connect_error', () => setConnState('error'));
+        socket.emit('reservation:subscribe', { reservationId: id });
+        socket.on('reservation:status', (payload: { reservationId: string; status: string }) => {
+          if (payload?.reservationId === id) setReservation((prev) => prev ? { ...prev, status: payload.status } : prev);
+        });
+        socket.on('reservation:updated', (payload: { reservationId: string; reservation: Reservation }) => {
+          if (payload?.reservationId === id) setReservation(payload.reservation);
+        });
+      } catch {
+        setConnState('error');
+      }
+    })();
+    const interval = setInterval(async () => {
+      if (connState !== 'connected' && id) {
+        try {
+          const r = await fetchReservationByIdWeb(id);
+          setReservation(r);
+        } catch(e) {console.log(e.message)}
+      }
+    }, 10000);
+    return () => {
+      mounted = false;
+      clearInterval(interval);
+      if (socketRef.current) {
+        try { socketRef.current.emit('reservation:unsubscribe', { reservationId: id }); } catch(e) {console.log(e.message)}
+        try { socketRef.current.disconnect(); } catch(e) {console.log(e.message)}
+        socketRef.current = null;
+      }
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
+  if (loading) return <div className="container mx-auto px-6 py-10">Loading…</div>;
+  if (error || !reservation) return <div className="container mx-auto px-6 py-10 text-red-600">{error || 'Reservation not found'}</div>;
+
+  return (
+    <div className="container mx-auto px-6 py-10">
+      <Card>
+        <CardHeader>
+          <CardTitle>Reservation Placed</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center gap-2 text-xs">
+            <span className={`px-2 py-1 rounded-full ${connState === 'connected' ? 'bg-emerald-500/20 text-emerald-700' : connState === 'connecting' ? 'bg-blue-500/20 text-blue-700' : 'bg-gray-500/20 text-gray-700'}`}>{connState.toUpperCase()}</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-sm text-muted-foreground">Restaurant</div>
+              <div className="font-semibold">{reservation.restaurant?.name || 'Restaurant'}</div>
+            </div>
+            <div className="text-right">
+              <div className="text-sm text-muted-foreground">Reservation ID</div>
+              <div className="font-mono">#{String(id).slice(-6).toUpperCase()}</div>
+            </div>
+          </div>
+          <div className="flex gap-2 items-center text-sm text-muted-foreground">
+            <span className="font-semibold">{String(reservation.type || '').toUpperCase()}</span>
+            <span>• Party {reservation.partySize || '-'}</span>
+            <span>• {reservation.date || ''} {reservation.time || ''}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className={`px-2 py-1 rounded-full text-[11px] ${reservation.status === 'pending' ? 'bg-blue-500/20 text-blue-700' : reservation.status === 'confirmed' ? 'bg-green-500/20 text-green-700' : 'bg-gray-500/20 text-gray-700'}`}>{String(reservation.status || 'pending').toUpperCase()}</span>
+          </div>
+          <div className="flex gap-2">
+            <Button className="flex-1" onClick={() => navigate('/discover')}>Discover</Button>
+            <Button variant="outline" className="flex-1" onClick={() => navigate(`/restaurant/${encodeURIComponent(reservation.restaurant?.id || '')}`)}>Restaurant</Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
