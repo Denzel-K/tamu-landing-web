@@ -4,11 +4,16 @@ import { getRestaurantById, type Restaurant } from "@/lib/api/restaurants";
 import { createOrder, type OrderType, type NewOrderItem } from "@/lib/api/orders";
 import { fetchPaymentMethodsForRestaurant, fetchPaymentConfigForBusiness, type PaymentMethodsResponse, type PaymentConfigResponse } from "@/lib/api/payments";
 import PaymentMethodSheetWeb from "@/components/web/PaymentMethodSheetWeb";
+import NewOrderHeaderWeb from "@/components/web/headers/NewOrderHeaderWeb";
+import OrderTypeSelectorWeb from "@/components/web/orders/OrderTypeSelectorWeb";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
+import CartSummaryWeb from "@/components/web/orders/CartSummaryWeb";
+import { useCart } from "@/lib/cart/CartContext";
+import type { CartItem } from "@/lib/cart/CartContext";
 
 export default function OrderNew() {
   const [sp] = useSearchParams();
@@ -24,12 +29,15 @@ export default function OrderNew() {
   const [paymentConfig, setPaymentConfig] = useState<PaymentConfigResponse['config'] | null>(null);
   const [showPay, setShowPay] = useState(false);
   const [lastOrderId, setLastOrderId] = useState<string | null>(null);
+  const [step, setStep] = useState<'select' | 'payment' | 'confirmation'>('select');
+  const [paidJustNow, setPaidJustNow] = useState(false);
 
   const [orderType, setOrderType] = useState<OrderType | "">("");
   const [deliveryAddress, setDeliveryAddress] = useState("");
   const [partySize, setPartySize] = useState("");
   const [tableNumber, setTableNumber] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
+  const { items: cartItems } = useCart();
 
   useEffect(() => {
     let mounted = true;
@@ -48,9 +56,11 @@ export default function OrderNew() {
           if (!mounted) return;
           setPaymentMethods(m || null);
           setPaymentConfig(c?.config || null);
-        } catch {}
-      } catch (e: any) {
-        if (!mounted) return; setError(e?.message || "Failed to load restaurant");
+        } catch (err: unknown) { /* non-fatal: payment methods unavailable */ }
+      } catch (e: unknown) {
+        if (!mounted) return;
+        const msg = e instanceof Error ? e.message : "Failed to load restaurant";
+        setError(msg);
       } finally {
         if (mounted) setLoading(false);
       }
@@ -61,10 +71,11 @@ export default function OrderNew() {
   const canSubmit = useMemo(() => {
     if (!restaurant) return false;
     if (!orderType) return false;
+    if ((cartItems?.length || 0) === 0) return false;
     if (orderType === "delivery" && deliveryAddress.trim().length < 6) return false;
     if (orderType === "dine-in" && !partySize) return false;
     return true;
-  }, [restaurant, orderType, deliveryAddress, partySize]);
+  }, [restaurant, orderType, deliveryAddress, partySize, cartItems]);
 
   const onSubmit = async () => {
     if (!restaurant) return;
@@ -77,8 +88,8 @@ export default function OrderNew() {
     }
     setSubmitting(true);
     try {
-      // Placeholder items; Phase 2 will use a cart
-      const items: NewOrderItem[] = [];
+      // Use cart items
+      const items: NewOrderItem[] = (cartItems || []).map((it) => ({ id: it.id, name: it.name, price: it.price, quantity: it.quantity } as NewOrderItem));
       const payload = {
         restaurantId: restaurant.id,
         items,
@@ -93,20 +104,26 @@ export default function OrderNew() {
       // Ensure payments loaded
       try {
         if (!paymentMethods) setPaymentMethods(await fetchPaymentMethodsForRestaurant(restaurant.id));
-      } catch {}
+      } catch (err) { /* non-fatal: payment methods unavailable */ }
       try {
         if (!paymentConfig) {
           const pc = await fetchPaymentConfigForBusiness(restaurant.id);
           setPaymentConfig(pc?.config || null);
         }
-      } catch {}
-      // If M-Pesa enabled, open sheet; else proceed and show confirmation page with pay later
-      const mpesaEnabled = (paymentMethods ? !!paymentMethods.enabled?.mpesa : true);
-      if (mpesaEnabled) {
-        setShowPay(true);
-      } else {
-        navigate(`/orders/confirmation/${encodeURIComponent(newId)}`);
-      }
+      } catch (err) { /* non-fatal: payment config unavailable */ }
+      try {
+        // If M-Pesa enabled, open sheet; else proceed and show confirmation page with pay later
+        const mpesaEnabled = (paymentMethods ? !!paymentMethods.enabled?.mpesa : true);
+        if (mpesaEnabled) {
+          setPaidJustNow(false);
+          setStep('payment');
+          setShowPay(true);
+        } else {
+          setPaidJustNow(false);
+          setStep('confirmation');
+          navigate(`/orders/confirmation/${encodeURIComponent(newId)}`);
+        }
+      } catch (e) { console.log(e.message); }
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Unknown error";
       toast({ title: "Could not place order", description: msg, variant: "destructive" });
@@ -123,65 +140,90 @@ export default function OrderNew() {
     </div>
   );
 
+  // Select step
+  if (step === 'select') {
+    return (
+      <div className="container mx-auto px-6 py-10">
+        <NewOrderHeaderWeb restaurant={restaurant} />
+        <Card>
+          <CardHeader>
+            <CardTitle>Order Details</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <OrderTypeSelectorWeb
+              availableOrderTypes={restaurant.availableOrderTypes || []}
+              selectedOrderType={orderType || null}
+              onSelectOrderType={(t) => setOrderType(t)}
+            />
+
+            {orderType === "delivery" && (
+              <div className="space-y-2">
+                <Label htmlFor="deliveryAddress">Delivery Address</Label>
+                <Input id="deliveryAddress" value={deliveryAddress} onChange={(e) => setDeliveryAddress(e.target.value)} placeholder="Enter delivery address" />
+              </div>
+            )}
+
+            {orderType === "dine-in" && (
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="partySize">Party Size</Label>
+                  <Input id="partySize" inputMode="numeric" value={partySize} onChange={(e) => setPartySize(e.target.value.replace(/[^0-9]/g, ""))} placeholder="2" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="tableNumber">Table Number (optional)</Label>
+                  <Input id="tableNumber" inputMode="numeric" value={tableNumber} onChange={(e) => setTableNumber(e.target.value.replace(/[^0-9]/g, ""))} placeholder="7" />
+                </div>
+              </div>
+            )}
+
+            <CartSummaryWeb items={cartItems as CartItem[]} />
+
+            {formError && (
+              <div className="text-sm text-red-700 bg-red-50 border border-red-200 rounded p-2">{formError}</div>
+            )}
+
+            <div className="flex flex-col sm:flex-row justify-end gap-3">
+              <Button variant="outline" asChild>
+                <Link to={`/restaurant/${encodeURIComponent(restaurant.id)}`}>Back</Link>
+              </Button>
+              <Button disabled={!canSubmit || submitting} onClick={onSubmit}>{submitting ? "Placing…" : "Place Order"}</Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Payment step
+  if (step === 'payment') {
+    const totalAmt = (cartItems || []).reduce((s, it) => s + (Number(it.price)||0) * (Number(it.quantity)||0), 0);
+    return (
+      <div className="container mx-auto px-6 py-10">
+        <NewOrderHeaderWeb restaurant={restaurant} />
+        <div className="max-w-xl mx-auto text-center mb-4">
+          <h2 className="text-xl font-bold">Payment</h2>
+          <p className="text-muted-foreground">Select how you’d like to pay. Total: {totalAmt.toFixed(2)}</p>
+        </div>
+        <div className="flex items-center justify-center gap-3">
+          <Button onClick={() => setShowPay(true)}>Pay Now</Button>
+          <Button variant="outline" onClick={() => { setShowPay(false); setPaidJustNow(false); if (lastOrderId) { setStep('confirmation'); navigate(`/orders/confirmation/${encodeURIComponent(lastOrderId)}`); } }}>Pay Later</Button>
+        </div>
+        <PaymentMethodSheetWeb
+          open={showPay}
+          onOpenChange={setShowPay}
+          context={{ serviceType: 'order', referenceId: String(lastOrderId || ''), amount: totalAmt, businessId: String(restaurant?.id || ''), allowPayLater: true }}
+          paymentMethods={paymentMethods}
+          paymentConfig={paymentConfig}
+          onSuccessPaid={() => { setShowPay(false); setPaidJustNow(true); if (lastOrderId) { setStep('confirmation'); navigate(`/orders/confirmation/${encodeURIComponent(lastOrderId)}`); } }}
+          onDeferCash={() => { setShowPay(false); setPaidJustNow(false); if (lastOrderId) { setStep('confirmation'); navigate(`/orders/confirmation/${encodeURIComponent(lastOrderId)}`); } }}
+          onSubmittedManual={() => { setShowPay(false); setPaidJustNow(false); if (lastOrderId) { setStep('confirmation'); navigate(`/orders/confirmation/${encodeURIComponent(lastOrderId)}`); } }}
+        />
+      </div>
+    );
+  }
+
+  // Confirmation step delegates to dedicated route
   return (
-    <div className="container mx-auto px-6 py-10">
-      <h1 className="text-2xl font-bold mb-4">New Order • {restaurant.name}</h1>
-      <Card>
-        <CardHeader>
-          <CardTitle>Order Details</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label>Order Type</Label>
-            <div className="flex gap-2">
-              {(["dine-in", "takeaway", "delivery"] as const).map((t) => (
-                <Button key={t} variant={orderType === t ? "default" : "outline"} type="button" onClick={() => setOrderType(t)}>{t}</Button>
-              ))}
-            </div>
-          </div>
-
-          {orderType === "delivery" && (
-            <div className="space-y-2">
-              <Label htmlFor="deliveryAddress">Delivery Address</Label>
-              <Input id="deliveryAddress" value={deliveryAddress} onChange={(e) => setDeliveryAddress(e.target.value)} placeholder="Enter delivery address" />
-            </div>
-          )}
-
-          {orderType === "dine-in" && (
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="partySize">Party Size</Label>
-                <Input id="partySize" inputMode="numeric" value={partySize} onChange={(e) => setPartySize(e.target.value.replace(/[^0-9]/g, ""))} placeholder="2" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="tableNumber">Table Number (optional)</Label>
-                <Input id="tableNumber" inputMode="numeric" value={tableNumber} onChange={(e) => setTableNumber(e.target.value.replace(/[^0-9]/g, ""))} placeholder="7" />
-              </div>
-            </div>
-          )}
-
-          {formError && (
-            <div className="text-sm text-red-700 bg-red-50 border border-red-200 rounded p-2">{formError}</div>
-          )}
-
-          <div className="flex flex-col sm:flex-row justify-end gap-3">
-            <Button variant="outline" asChild>
-              <Link to={`/restaurant/${encodeURIComponent(restaurant.id)}`}>Back</Link>
-            </Button>
-            <Button disabled={!canSubmit || submitting} onClick={onSubmit}>{submitting ? "Placing…" : "Place Order"}</Button>
-          </div>
-        </CardContent>
-      </Card>
-      <PaymentMethodSheetWeb
-        open={showPay}
-        onOpenChange={setShowPay}
-        context={{ serviceType: 'order', referenceId: String(lastOrderId || ''), amount: 0, businessId: String(restaurant?.id || ''), allowPayLater: true }}
-        paymentMethods={paymentMethods}
-        paymentConfig={paymentConfig}
-        onSuccessPaid={() => { setShowPay(false); if (lastOrderId) navigate(`/orders/confirmation/${encodeURIComponent(lastOrderId)}`); }}
-        onDeferCash={() => { setShowPay(false); if (lastOrderId) navigate(`/orders/confirmation/${encodeURIComponent(lastOrderId)}`); }}
-        onSubmittedManual={() => { setShowPay(false); if (lastOrderId) navigate(`/orders/confirmation/${encodeURIComponent(lastOrderId)}`); }}
-      />
-    </div>
+    <div className="container mx-auto px-6 py-10">Redirecting…</div>
   );
 }

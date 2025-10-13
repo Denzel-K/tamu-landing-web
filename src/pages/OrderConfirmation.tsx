@@ -5,6 +5,7 @@ import { fetchPaymentMethodsForRestaurant, fetchPaymentConfigForBusiness, type P
 import PaymentMethodSheetWeb from "@/components/web/PaymentMethodSheetWeb";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import ProcessingOrderCardWeb from "@/components/web/ProcessingOrderCardWeb";
 import { connectSocket, type SocketConnectionState, type ClientSocket } from "@/lib/realtime/socketClient";
 
 export default function OrderConfirmation() {
@@ -98,69 +99,30 @@ export default function OrderConfirmation() {
   if (loading) return <div className="container mx-auto px-6 py-10">Loading…</div>;
   if (error || !order) return <div className="container mx-auto px-6 py-10 text-red-600">{error || "Order not found"}</div>;
 
-  const total = (order.items || []).reduce((s, it) => s + it.price * it.quantity, 0);
+  const mapped = {
+    id: String(id || order.id),
+    items: (order.items || []).map(it => ({ name: it.name, price: Number(it.price)||0, quantity: Number(it.quantity)||0 })),
+    type: String(order.type || ''),
+    deliveryAddress: order.deliveryAddress,
+    partySize: order.partySize ? Number(order.partySize) : undefined,
+    tableNumber: order.tableNumber,
+    restaurant: { name: order.restaurant?.name, id: order.restaurant?.id },
+    restaurantId: order.restaurant?.id,
+    status: order.status,
+  } as const;
 
   return (
     <div className="container mx-auto px-6 py-10">
-      <Card>
-        <CardHeader>
-          <CardTitle>Order Placed</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center gap-2 text-xs">
-            <span className={`px-2 py-1 rounded-full ${connState === 'connected' ? 'bg-emerald-500/20 text-emerald-700' : connState === 'connecting' ? 'bg-blue-500/20 text-blue-700' : 'bg-gray-500/20 text-gray-700'}`}>{connState.toUpperCase()}</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-sm text-muted-foreground">Restaurant</div>
-              <div className="font-semibold">{order.restaurant?.name || "Restaurant"}</div>
-            </div>
-            <div className="text-right">
-              <div className="text-sm text-muted-foreground">Order ID</div>
-              <div className="font-mono">#{String(id).slice(-6).toUpperCase()}</div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span className={`px-2 py-1 rounded-full text-[11px] ${order.status === 'pending' ? 'bg-blue-500/20 text-blue-700' : order.status === 'preparing' ? 'bg-orange-500/20 text-orange-700' : order.status === 'completed' ? 'bg-green-500/20 text-green-700' : 'bg-gray-500/20 text-gray-700'}`}>{String(order.status || 'pending').toUpperCase()}</span>
-          </div>
-
-          <div>
-            <div className="text-sm font-semibold mb-1">Items</div>
-            <ul className="rounded-xl border border-border overflow-hidden">
-              {(order.items || []).map((it, idx) => (
-                <li key={idx} className="flex items-center justify-between p-3 bg-card border-b last:border-b-0">
-                  <div className="text-sm">{it.quantity} x {it.name}</div>
-                  <div className="text-sm">{(it.price * it.quantity).toFixed(2)}</div>
-                </li>
-              ))}
-              <li className="flex items-center justify-between p-3 bg-card">
-                <div className="font-semibold">Total</div>
-                <div className="font-semibold">{total.toFixed(2)}</div>
-              </li>
-            </ul>
-          </div>
-
-          <div className="flex gap-2">
-            {order.status === 'pending' && (
-              <Button className="flex-1" onClick={() => setShowPay(true)}>Pay Now</Button>
-            )}
-            <Button variant="outline" className="flex-1" onClick={() => navigate('/discover')}>Discover</Button>
-            <Button variant="secondary" className="flex-1" onClick={async () => { try { if (id) await cancelOrder(id); navigate('/discover'); } catch (err) { console.error('Failed to cancel order', err); } }}>Cancel</Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      <PaymentMethodSheetWeb
-        open={showPay}
-        onOpenChange={setShowPay}
-        context={{ serviceType: 'order', referenceId: String(id || ''), amount: total, businessId: String(order?.restaurant?.id || ''), allowPayLater: true }}
-        paymentMethods={paymentMethods}
-        paymentConfig={paymentConfig}
-        onSuccessPaid={() => { setShowPay(false); load(); }}
-        onDeferCash={() => { setShowPay(false); load(); }}
-        onSubmittedManual={() => { setShowPay(false); load(); }}
+      <ProcessingOrderCardWeb
+        order={mapped}
+        onCancel={async () => { try { if (id) await cancelOrder(id); navigate('/discover'); } catch (err) { console.error('Failed to cancel order', err); } }}
+        onRefresh={() => load()}
       />
+
+      {/* Connection status chip for visibility */}
+      <div className="mt-3 text-xs">
+        <span className={`px-2 py-1 rounded-full ${connState === 'connected' ? 'bg-emerald-500/20 text-emerald-700' : connState === 'connecting' ? 'bg-blue-500/20 text-blue-700' : 'bg-gray-500/20 text-gray-700'}`}>{connState.toUpperCase()}</span>
+      </div>
     </div>
   );
 }

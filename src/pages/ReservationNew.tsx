@@ -4,6 +4,10 @@ import { getRestaurantById, type Restaurant } from "@/lib/api/restaurants";
 import { createReservation, fetchReservationPolicy, type ReservationType } from "@/lib/api/reservations";
 import { fetchPaymentMethodsForRestaurant, fetchPaymentConfigForBusiness, type PaymentMethodsResponse, type PaymentConfigResponse } from "@/lib/api/payments";
 import PaymentMethodSheetWeb from "@/components/web/PaymentMethodSheetWeb";
+import NewReservationHeaderWeb from "@/components/web/headers/NewReservationHeaderWeb";
+import ReservationTypeSelectorWeb from "@/components/web/reservations/ReservationTypeSelectorWeb";
+import DateTimeFieldWeb from "@/components/web/common/DateTimeFieldWeb";
+import ReservationSummaryWeb from "@/components/web/reservations/ReservationSummaryWeb";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,6 +34,8 @@ export default function ReservationNew() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [step, setStep] = useState<'select' | 'summary'>('select');
 
   const [type, setType] = useState<ReservationType | "">("");
   const [partySize, setPartySize] = useState("");
@@ -123,49 +129,96 @@ export default function ReservationNew() {
     </div>
   );
 
+  // Select step UI
+  if (step === 'select') {
+    return (
+      <div className="container mx-auto px-6 py-10">
+        <NewReservationHeaderWeb restaurant={restaurant} />
+        <Card>
+          <CardHeader>
+            <CardTitle>Reservation Details</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <ReservationTypeSelectorWeb
+              availableReservationTypes={restaurant.availableReservationTypes || []}
+              selectedReservationType={type || undefined}
+              onSelectReservationType={(t) => setType(t)}
+            />
+
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="partySize">Party Size</Label>
+                <Input id="partySize" inputMode="numeric" value={partySize} onChange={(e) => setPartySize(e.target.value.replace(/[^0-9]/g, ""))} placeholder="2" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="occasion">Occasion (optional)</Label>
+                <Input id="occasion" value={occasion} onChange={(e) => setOccasion(e.target.value)} placeholder="Birthday, Anniversary…" />
+              </div>
+            </div>
+
+            <DateTimeFieldWeb
+              valueDate={date}
+              valueTime={time}
+              onChangeDate={(v) => setDate(v)}
+              onChangeTime={(v) => setTime(v)}
+            />
+
+            <div className="space-y-2">
+              <Label htmlFor="notes">Special Requests (optional)</Label>
+              <Input id="notes" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Any special requests" />
+            </div>
+
+            {policy && (
+              <div className="rounded border border-border p-4 space-y-2">
+                <div className="text-sm text-muted-foreground">
+                  {policy.requireFee ? (
+                    <>Reservation fee required: {Number(policy.feeAmount || 0).toFixed(2)} {policy.feeCurrency || 'USD'}</>
+                  ) : (
+                    <>No reservation fee required</>
+                  )}
+                </div>
+                {typeof policy.redemption?.percent === 'number' && (
+                  <div className="text-xs text-muted-foreground">Redeemable at restaurant: {policy.redemption.percent}%</div>
+                )}
+                <label className="flex items-start gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    className="mt-1"
+                    checked={policyAccepted}
+                    onChange={(e) => setPolicyAccepted(e.target.checked)}
+                  />
+                  <span>I have read and agree to the reservation policy.</span>
+                </label>
+              </div>
+            )}
+
+            <div className="flex flex-col sm:flex-row justify-end gap-3">
+              <Button variant="outline" asChild>
+                <Link to={`/restaurant/${encodeURIComponent(restaurant.id)}`}>Back</Link>
+              </Button>
+              <Button
+                disabled={!canSubmit}
+                onClick={() => setStep('summary')}
+              >
+                Review Reservation
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Summary step UI
   return (
     <div className="container mx-auto px-6 py-10">
-      <h1 className="text-2xl font-bold mb-4">New Reservation • {restaurant.name}</h1>
+      <NewReservationHeaderWeb restaurant={restaurant} />
       <Card>
         <CardHeader>
-          <CardTitle>Reservation Details</CardTitle>
+          <CardTitle>Review & Confirm</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label>Reservation Type</Label>
-            <div className="flex gap-2">
-              {(["table", "space"] as const).map((t) => (
-                <Button key={t} variant={type === t ? "default" : "outline"} type="button" onClick={() => setType(t)}>{t}</Button>
-              ))}
-            </div>
-          </div>
-
-          <div className="grid sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="partySize">Party Size</Label>
-              <Input id="partySize" inputMode="numeric" value={partySize} onChange={(e) => setPartySize(e.target.value.replace(/[^0-9]/g, ""))} placeholder="2" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="occasion">Occasion (optional)</Label>
-              <Input id="occasion" value={occasion} onChange={(e) => setOccasion(e.target.value)} placeholder="Birthday, Anniversary…" />
-            </div>
-          </div>
-
-          <div className="grid sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="date">Date</Label>
-              <Input id="date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="time">Time</Label>
-              <Input id="time" type="time" value={time} onChange={(e) => setTime(e.target.value)} />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="notes">Special Requests (optional)</Label>
-            <Input id="notes" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Any special requests" />
-          </div>
+          <ReservationSummaryWeb reservation={{ type, partySize: Number(partySize)||0, date, time, restaurant: { name: restaurant.name } }} />
 
           {policy && (
             <div className="rounded border border-border p-4 space-y-2">
@@ -191,19 +244,15 @@ export default function ReservationNew() {
             </div>
           )}
 
-          <div className="flex flex-col sm:flex-row justify-end gap-3">
-            <Button variant="outline" asChild>
-              <Link to={`/restaurant/${encodeURIComponent(restaurant.id)}`}>Back</Link>
-            </Button>
+          <div className="flex flex-col sm:flex-row gap-3 justify-end">
+            <Button variant="outline" onClick={() => setStep('select')}>Edit</Button>
             <Button
-              disabled={!canSubmit || submitting}
+              disabled={submitting || !policyAccepted}
               onClick={async () => {
-                // If fee required, open payment sheet first
                 const feeRequired = !!policy?.requireFee && Number(policy?.feeAmount || 0) > 0;
                 if (feeRequired) {
-                  // ensure payment context is available
-                  try { if (!paymentMethods) setPaymentMethods(await fetchPaymentMethodsForRestaurant(restaurant.id)); } catch(e) {console.log(e.message)}
-                  try { if (!paymentConfig) { const pc = await fetchPaymentConfigForBusiness(restaurant.id); setPaymentConfig(pc?.config || null); } } catch(e) {console.log(e.message)}
+                  try { if (!paymentMethods) setPaymentMethods(await fetchPaymentMethodsForRestaurant(restaurant.id)); } catch (e) { /* non-fatal */ }
+                  try { if (!paymentConfig) { const pc = await fetchPaymentConfigForBusiness(restaurant.id); setPaymentConfig(pc?.config || null); } } catch (e) { /* non-fatal */ }
                   setPendingRef(`resv:${restaurant.id}:${Date.now()}`);
                   setShowPay(true);
                   return;
@@ -211,11 +260,12 @@ export default function ReservationNew() {
                 await onSubmit();
               }}
             >
-              {submitting ? "Placing…" : "Place Reservation"}
+              {submitting ? 'Placing…' : 'Place Reservation'}
             </Button>
           </div>
         </CardContent>
       </Card>
+
       <PaymentMethodSheetWeb
         open={showPay}
         onOpenChange={setShowPay}

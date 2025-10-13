@@ -97,6 +97,9 @@ export default function ReservationConfirmation() {
   if (loading) return <div className="container mx-auto px-6 py-10">Loading…</div>;
   if (error || !reservation) return <div className="container mx-auto px-6 py-10 text-red-600">{error || 'Reservation not found'}</div>;
 
+  const items = Array.isArray(reservation.items) ? reservation.items : [];
+  const total = items.reduce((s, it) => s + (Number(it.price)||0) * (Number(it.quantity)||0), 0);
+
   return (
     <div className="container mx-auto px-6 py-10">
       <Card>
@@ -104,9 +107,12 @@ export default function ReservationConfirmation() {
           <CardTitle>Reservation Placed</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Connection chip */}
           <div className="flex items-center gap-2 text-xs">
             <span className={`px-2 py-1 rounded-full ${connState === 'connected' ? 'bg-emerald-500/20 text-emerald-700' : connState === 'connecting' ? 'bg-blue-500/20 text-blue-700' : 'bg-gray-500/20 text-gray-700'}`}>{connState.toUpperCase()}</span>
           </div>
+
+          {/* Header row */}
           <div className="flex items-center justify-between">
             <div>
               <div className="text-sm text-muted-foreground">Restaurant</div>
@@ -117,14 +123,39 @@ export default function ReservationConfirmation() {
               <div className="font-mono">#{String(id).slice(-6).toUpperCase()}</div>
             </div>
           </div>
+
+          {/* Quick facts */}
           <div className="flex gap-2 items-center text-sm text-muted-foreground">
             <span className="font-semibold">{String(reservation.type || '').toUpperCase()}</span>
             <span>• Party {reservation.partySize || '-'}</span>
             <span>• {reservation.date || ''} {reservation.time || ''}</span>
           </div>
+
+          {/* Status chip */}
           <div className="flex items-center gap-2">
-            <span className={`px-2 py-1 rounded-full text-[11px] ${reservation.status === 'pending' ? 'bg-blue-500/20 text-blue-700' : reservation.status === 'confirmed' ? 'bg-green-500/20 text-green-700' : 'bg-gray-500/20 text-gray-700'}`}>{String(reservation.status || 'pending').toUpperCase()}</span>
+            <span className={`px-2 py-1 rounded-full text-[11px] ${reservation.status === 'pending' ? 'bg-blue-500/20 text-blue-700' : reservation.status === 'confirmed' ? 'bg-green-500/20 text-green-700' : reservation.status === 'cancelled' ? 'bg-red-500/20 text-red-700' : 'bg-gray-500/20 text-gray-700'}`}>{String(reservation.status || 'pending').toUpperCase()}</span>
           </div>
+
+          {/* Optional preordered items list */}
+          {items.length > 0 && (
+            <div>
+              <div className="text-sm font-semibold mb-1">Pre‑ordered Items</div>
+              <ul className="rounded-xl border border-border overflow-hidden">
+                {items.map((it, idx) => (
+                  <li key={idx} className="flex items-center justify-between p-3 bg-card border-b last:border-b-0">
+                    <div className="text-sm">{it.quantity} x {it.name}</div>
+                    <div className="text-sm">{((Number(it.price)||0) * (Number(it.quantity)||0)).toFixed(2)}</div>
+                  </li>
+                ))}
+                <li className="flex items-center justify-between p-3 bg-card">
+                  <div className="font-semibold">Subtotal</div>
+                  <div className="font-semibold">{total.toFixed(2)}</div>
+                </li>
+              </ul>
+            </div>
+          )}
+
+          {/* Actions */}
           <div className="flex gap-2">
             <Button className="flex-1" onClick={() => navigate('/discover')}>Discover</Button>
             <Button variant="outline" className="flex-1" onClick={() => navigate(`/restaurant/${encodeURIComponent(reservation.restaurant?.id || '')}`)}>Restaurant</Button>

@@ -2,13 +2,15 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { getRestaurantById, type Restaurant } from "@/lib/api/restaurants";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { AuthGateModal } from "@/components/AuthGateModal";
-import { fetchMe } from "@/lib/api/auth";
 import MenuListWeb from "@/components/web/MenuListWeb";
 import ReviewsWeb from "@/components/web/ReviewsWeb";
 import InfoPanelWeb from "@/components/web/InfoPanelWeb";
 import OrderReserveBarWeb from "@/components/web/OrderReserveBarWeb";
+import RestaurantHeaderWeb from "@/components/web/RestaurantHeaderWeb";
+import TabNavigationWeb from "@/components/web/TabNavigationWeb";
+import { useCart } from "@/lib/cart/CartContext";
+import FloatingCartWeb from "@/components/web/orders/FloatingCartWeb";
 
 export default function RestaurantPage() {
   const { id } = useParams<{ id: string }>();
@@ -18,6 +20,8 @@ export default function RestaurantPage() {
   const [error, setError] = useState<string | null>(null);
   const [authOpen, setAuthOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'Menu' | 'Reviews' | 'Info'>('Menu');
+  const { initiator, preOrderEnabled } = useCart();
+  const showControls = initiator === 'order' || (initiator === 'reserve' && preOrderEnabled);
 
   useEffect(() => {
     let mounted = true;
@@ -38,23 +42,7 @@ export default function RestaurantPage() {
     return () => { mounted = false; };
   }, [id]);
 
-  const handleStartOrder = async () => {
-    const me = await fetchMe();
-    if (!me?.user?.id) {
-      setAuthOpen(true);
-      return;
-    }
-    navigate(`/orders/new?restaurantId=${encodeURIComponent(id || "")}`);
-  };
-
-  const handleStartReservation = async () => {
-    const me = await fetchMe();
-    if (!me?.user?.id) {
-      setAuthOpen(true);
-      return;
-    }
-    navigate(`/reservations/new?restaurantId=${encodeURIComponent(id || "")}`);
-  };
+  // Order and Reservation actions are handled exclusively by OrderReserveBarWeb now.
 
   if (loading) {
     return (
@@ -71,70 +59,61 @@ export default function RestaurantPage() {
   }
 
   return (
-    <div className="container mx-auto px-6 py-10">
-      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-3xl font-bold">{restaurant.name}</h1>
-          {restaurant.cuisine && (
-            <p className="text-muted-foreground">{restaurant.cuisine}</p>
-          )}
+    <div className="min-h-screen flex flex-col">
+      {/* Scrollable content area */}
+      <div
+        className="container mx-auto px-6 py-10 flex-1"
+        style={{ paddingBottom: 'calc(var(--order-bar-h, 96px) + 32px)' }}
+      >
+        <RestaurantHeaderWeb restaurant={restaurant} />
+        <div className="flex items-center justify-between mb-4">
+          <TabNavigationWeb tabs={["Menu","Reviews","Info"] as const} activeTab={activeTab} onChange={(t: 'Menu' | 'Reviews' | 'Info') => setActiveTab(t)} />
         </div>
-        <div className="flex gap-3">
-          <Button onClick={handleStartOrder}>Order</Button>
-          <Button variant="outline" onClick={handleStartReservation}>Reserve</Button>
-        </div>
+
+        {/* Content */}
+        {activeTab === 'Menu' && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Menu</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <MenuListWeb menu={restaurant.menu as any} restaurantId={restaurant.id} showControls={showControls} />
+            </CardContent>
+          </Card>
+        )}
+
+        {activeTab === 'Reviews' && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Reviews</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ReviewsWeb restaurantId={restaurant.id} />
+            </CardContent>
+          </Card>
+        )}
+
+        {activeTab === 'Info' && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Info</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <InfoPanelWeb restaurant={restaurant as any} />
+            </CardContent>
+          </Card>
+        )}
+
+        {activeTab === 'Menu' && (
+          <FloatingCartWeb restaurantId={restaurant.id} />
+        )}
+        <AuthGateModal open={authOpen} onOpenChange={setAuthOpen} />
       </div>
 
-      {/* Tabs */}
-      <div className="border-b border-border mb-4 flex">
-        {(['Menu','Reviews','Info'] as const).map((t) => (
-          <button
-            key={t}
-            onClick={() => setActiveTab(t)}
-            className={`flex-1 py-3 text-sm font-semibold border-b-2 ${activeTab === t ? 'border-primary text-primary' : 'border-transparent text-muted-foreground'}`}
-          >
-            {t}
-          </button>
-        ))}
-      </div>
-
-      {/* Content */}
+      {/* Sticky bottom bar - rendered at root level to sit at the viewport bottom */}
       {activeTab === 'Menu' && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Menu</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <MenuListWeb menu={restaurant.menu as any} />
-          </CardContent>
-        </Card>
+        <OrderReserveBarWeb restaurantId={restaurant.id} />
       )}
-
-      {activeTab === 'Reviews' && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Reviews</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ReviewsWeb restaurantId={restaurant.id} />
-          </CardContent>
-        </Card>
-      )}
-
-      {activeTab === 'Info' && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Info</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <InfoPanelWeb restaurant={restaurant as any} />
-          </CardContent>
-        </Card>
-      )}
-
-      <div className="h-20" />
-      <OrderReserveBarWeb restaurantId={restaurant.id} />
-      <AuthGateModal open={authOpen} onOpenChange={setAuthOpen} />
     </div>
   );
 }
