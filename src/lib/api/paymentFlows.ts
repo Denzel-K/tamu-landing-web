@@ -14,7 +14,7 @@ export async function startMpesaStk(params: { businessId: string; amount: number
   });
 }
 
-export async function submitManualMpesa(params: { businessId: string; amount: number; code: string; orderId?: string; reservationId?: string }) {
+export async function submitManualMpesa(params: { businessId: string; amount: number; code: string; orderId?: string; reservationId?: string; methodId?: string; methodType?: 'till' | 'paybill' | 'pochi' }) {
   return getJson<StartMpesaResponse>(withBase(`/api/payments/mpesa/manual`), {
     method: 'POST',
     body: JSON.stringify(params),

@@ -232,6 +232,7 @@ export default function OrderNew() {
   // Payment step
   if (step === 'payment') {
     const totalAmt = (cartItems || []).reduce((s, it) => s + (Number(it.price)||0) * (Number(it.quantity)||0), 0);
+    const paymentsReady = !!paymentMethods || !!paymentConfig;
     return (
       <div className="container mx-auto px-6 py-8">
         <NewOrderHeaderWeb restaurant={restaurant} />
@@ -249,14 +250,55 @@ export default function OrderNew() {
             <CardTitle>Payment</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <p className="text-sm text-muted-foreground">Select how you’d like to pay. Total: {totalAmt.toFixed(2)}</p>
-            <div className="flex items-center justify-center gap-3">
-              <Button onClick={() => { if (!isAuthed) { setAuthOpen(true); return; } setShowPay(true); }}>Pay Now</Button>
-              <Button variant="outline" onClick={() => { setShowPay(false); setPaidJustNow(false); if (lastOrderId) { setStep('confirmation'); navigate(`/orders/confirmation/${encodeURIComponent(lastOrderId)}`); } }}>Pay Later</Button>
+            <OrderTypeSelectorWeb
+              availableOrderTypes={restaurant.availableOrderTypes || []}
+              selectedOrderType={orderType || null}
+              onSelectOrderType={(t) => setOrderType(t)}
+            />
+
+            {orderType === "delivery" && (
+              <div className="space-y-2">
+                <Label htmlFor="deliveryAddress">Delivery Address</Label>
+                <Input id="deliveryAddress" value={deliveryAddress} onChange={(e) => setDeliveryAddress(e.target.value)} placeholder="Enter delivery address" />
+              </div>
+            )}
+
+            {orderType === "dine-in" && (
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="partySize">Party Size</Label>
+                  <Input id="partySize" inputMode="numeric" value={partySize} onChange={(e) => setPartySize(e.target.value.replace(/[^0-9]/g, ""))} placeholder="2" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="tableNumber">Table Number (optional)</Label>
+                  <Input id="tableNumber" inputMode="numeric" value={tableNumber} onChange={(e) => setTableNumber(e.target.value.replace(/[^0-9]/g, ""))} placeholder="7" />
+                </div>
+              </div>
+            )}
+
+            {formError && (
+              <div className="text-sm text-red-700 bg-red-50 border border-red-200 rounded p-2">{formError}</div>
+            )}
+
+            <div className="flex flex-col sm:flex-row justify-end gap-3">
+              <Button variant="outline" asChild>
+                <Link to={`/restaurant/${encodeURIComponent(restaurant.id)}`}>Back</Link>
+              </Button>
+              <Button disabled={!canSubmit || submitting} onClick={onSubmit}>{!isAuthed ? "Signup to place order" : (submitting ? "Placing…" : "Place Order")}</Button>
             </div>
           </CardContent>
         </Card>
 
+        <div className="lg:sticky lg:top-[88px]">
+          <Card>
+            <CardHeader>
+              <CardTitle>Summary</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CartSummaryWeb items={cartItems as CartItem[]} />
+            </CardContent>
+          </Card>
+        </div>
         <PaymentMethodSheetWeb
           open={showPay}
           onOpenChange={setShowPay}

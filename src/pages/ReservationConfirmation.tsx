@@ -57,7 +57,7 @@ export default function ReservationConfirmation() {
       if (!id) return;
       try {
         setConnState('connecting');
-        const socket = await connectSocket('/ws');
+        const socket = await connectSocket();
         if (!mounted) return;
         socketRef.current = socket;
         socket.on('connect', () => setConnState('connected'));

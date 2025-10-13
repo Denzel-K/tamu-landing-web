@@ -63,7 +63,7 @@ export default function OrderConfirmation() {
       if (!id) return;
       try {
         setConnState('connecting');
-        const socket = await connectSocket('/ws');
+        const socket = await connectSocket();
         if (!mounted) return;
         socketRef.current = socket;
         socket.on('connect', () => setConnState('connected'));
@@ -107,6 +107,7 @@ export default function OrderConfirmation() {
   } as const;
 
   const subtotal = mapped.items.reduce((s, it) => s + (Number(it.price)||0) * (Number(it.quantity)||0), 0);
+  const paymentsReady = !!paymentMethods && !!paymentConfig;
 
   return (
     <div className="container mx-auto px-6 py-10">
@@ -157,7 +158,27 @@ export default function OrderConfirmation() {
 
           {/* Actions */}
           <div className="flex flex-col sm:flex-row gap-2">
-            <Button className="flex-1" onClick={() => setShowPay(true)}>Pay Now</Button>
+            <Button
+              className="flex-1"
+              onClick={async () => {
+                try {
+                  if (!paymentMethods && mapped.restaurantId) {
+                    const m = await fetchPaymentMethodsForRestaurant(mapped.restaurantId);
+                    setPaymentMethods(m);
+                  }
+                } catch (e) { console.debug('Failed to prefetch payment methods', e); }
+                try {
+                  if (!paymentConfig && mapped.restaurantId) {
+                    const pc = await fetchPaymentConfigForBusiness(mapped.restaurantId);
+                    setPaymentConfig(pc?.config || null);
+                  }
+                } catch (e) { console.debug('Failed to prefetch payment config', e); }
+                setShowPay(true);
+              }}
+              title={!paymentsReady ? 'Loading payment methods…' : undefined}
+            >
+              Pay Now
+            </Button>
             <Button variant="outline" className="flex-1" onClick={() => navigate(`/restaurant/${encodeURIComponent(mapped.restaurantId || '')}`)}>Restaurant</Button>
             <Button variant="secondary" className="flex-1" onClick={() => navigate('/discover')}>Discover</Button>
             <Button variant="ghost" className="flex-1" onClick={async () => { try { if (id) await cancelOrder(id); navigate('/discover'); } catch (err) { console.error('Failed to cancel order', err); } }}>Cancel</Button>

@@ -14,6 +14,7 @@ import { useCart } from "@/lib/cart/CartContext";
 import FloatingCartWeb from "@/components/web/orders/FloatingCartWeb";
 import AuthModalWeb from "@/components/auth/AuthModalWeb";
 import { authLocal, authBus } from "@/lib/auth/authLocal";
+import mobileAuthService from "@/lib/auth/mobileAuthService";
 
 export default function RestaurantPage() {
   const { id } = useParams<{ id: string }>();
@@ -101,9 +102,21 @@ export default function RestaurantPage() {
                 <Button size="sm" onClick={() => { setAuthInitial('signup'); setAuthOpen(true); }}>Sign up</Button>
               </>
             ) : (
-              <div className="text-right">
-                <div className="text-sm font-semibold leading-tight truncate max-w-[200px] sm:max-w-[280px]">{userName || 'Account'}</div>
-                <div className="text-xs text-muted-foreground truncate max-w-[200px] sm:max-w-[280px]">{userEmail}</div>
+              <div className="flex items-center gap-3">
+                <div className="text-right">
+                  <div className="text-sm font-semibold leading-tight truncate max-w-[200px] sm:max-w-[280px]">{userName || 'Account'}</div>
+                  <div className="text-xs text-muted-foreground truncate max-w-[200px] sm:max-w-[280px]">{userEmail}</div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={async () => {
+                    try { await mobileAuthService.logout(); } catch { /* noop */ }
+                    navigate('/discover');
+                  }}
+                >
+                  Logout
+                </Button>
               </div>
             )}
           </div>

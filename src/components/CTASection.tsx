@@ -127,7 +127,7 @@ export const CTASection = ({ selectedView }: CTASectionProps) => {
                     variant="outline"
                     className="text-sm sm:text-lg px-8 py-6 border-2 border-primary bg-background/50 text-foreground hover:bg-primary/10 font-semibold rounded-xl"
                   >
-                    Try In‑Restaurant Mode
+                    Try it right here
                   </Button>
                 </motion.a>
               </div>
