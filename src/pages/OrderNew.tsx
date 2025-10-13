@@ -14,6 +14,8 @@ import { useToast } from "@/components/ui/use-toast";
 import CartSummaryWeb from "@/components/web/orders/CartSummaryWeb";
 import { useCart } from "@/lib/cart/CartContext";
 import type { CartItem } from "@/lib/cart/CartContext";
+import { authLocal, authBus } from "@/lib/auth/authLocal";
+import AuthModalWeb from "@/components/auth/AuthModalWeb";
 
 export default function OrderNew() {
   const [sp] = useSearchParams();
@@ -31,6 +33,8 @@ export default function OrderNew() {
   const [lastOrderId, setLastOrderId] = useState<string | null>(null);
   const [step, setStep] = useState<'select' | 'payment' | 'confirmation'>('select');
   const [paidJustNow, setPaidJustNow] = useState(false);
+  const [authOpen, setAuthOpen] = useState(false);
+  const [isAuthed, setIsAuthed] = useState<boolean>(!!authLocal.getAccessToken());
 
   const [orderType, setOrderType] = useState<OrderType | "">("");
   const [deliveryAddress, setDeliveryAddress] = useState("");
@@ -38,6 +42,14 @@ export default function OrderNew() {
   const [tableNumber, setTableNumber] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
   const { items: cartItems } = useCart();
+
+  useEffect(() => {
+    // Gate: prompt login if unauthenticated
+    if (!isAuthed) setAuthOpen(true);
+    const unsubLogin = authBus.subscribe('login', () => { setIsAuthed(true); setAuthOpen(false); });
+    const unsubLogout = authBus.subscribe('logout', () => { setIsAuthed(false); setAuthOpen(true); });
+    return () => { unsubLogin(); unsubLogout(); };
+  }, [isAuthed]);
 
   useEffect(() => {
     let mounted = true;
@@ -78,6 +90,7 @@ export default function OrderNew() {
   }, [restaurant, orderType, deliveryAddress, partySize, cartItems]);
 
   const onSubmit = async () => {
+    if (!isAuthed) { setAuthOpen(true); return; }
     if (!restaurant) return;
     setFormError(null);
     if (!orderType) { setFormError("Please select an order type"); return; }
@@ -143,53 +156,75 @@ export default function OrderNew() {
   // Select step
   if (step === 'select') {
     return (
-      <div className="container mx-auto px-6 py-10">
+      <div className="container mx-auto px-6 py-8">
         <NewOrderHeaderWeb restaurant={restaurant} />
-        <Card>
-          <CardHeader>
-            <CardTitle>Order Details</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <OrderTypeSelectorWeb
-              availableOrderTypes={restaurant.availableOrderTypes || []}
-              selectedOrderType={orderType || null}
-              onSelectOrderType={(t) => setOrderType(t)}
-            />
+        {/* Step indicator */}
+        <div className="flex items-center gap-2 text-xs text-muted-foreground mb-4">
+          <div className={`px-2 py-1 rounded ${step === 'select' ? 'bg-primary/10 text-primary' : 'bg-muted'}`}>1. Details</div>
+          <div className="h-px flex-1 bg-border" />
+          <div className={`px-2 py-1 rounded bg-muted`}>2. Payment</div>
+          <div className="h-px flex-1 bg-border" />
+          <div className={`px-2 py-1 rounded bg-muted`}>3. Confirmation</div>
+        </div>
 
-            {orderType === "delivery" && (
-              <div className="space-y-2">
-                <Label htmlFor="deliveryAddress">Delivery Address</Label>
-                <Input id="deliveryAddress" value={deliveryAddress} onChange={(e) => setDeliveryAddress(e.target.value)} placeholder="Enter delivery address" />
-              </div>
-            )}
+        <div className="grid lg:grid-cols-3 gap-6 items-start">
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle>Order Details</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <OrderTypeSelectorWeb
+                availableOrderTypes={restaurant.availableOrderTypes || []}
+                selectedOrderType={orderType || null}
+                onSelectOrderType={(t) => setOrderType(t)}
+              />
 
-            {orderType === "dine-in" && (
-              <div className="grid sm:grid-cols-2 gap-4">
+              {orderType === "delivery" && (
                 <div className="space-y-2">
-                  <Label htmlFor="partySize">Party Size</Label>
-                  <Input id="partySize" inputMode="numeric" value={partySize} onChange={(e) => setPartySize(e.target.value.replace(/[^0-9]/g, ""))} placeholder="2" />
+                  <Label htmlFor="deliveryAddress">Delivery Address</Label>
+                  <Input id="deliveryAddress" value={deliveryAddress} onChange={(e) => setDeliveryAddress(e.target.value)} placeholder="Enter delivery address" />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="tableNumber">Table Number (optional)</Label>
-                  <Input id="tableNumber" inputMode="numeric" value={tableNumber} onChange={(e) => setTableNumber(e.target.value.replace(/[^0-9]/g, ""))} placeholder="7" />
+              )}
+
+              {orderType === "dine-in" && (
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="partySize">Party Size</Label>
+                    <Input id="partySize" inputMode="numeric" value={partySize} onChange={(e) => setPartySize(e.target.value.replace(/[^0-9]/g, ""))} placeholder="2" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="tableNumber">Table Number (optional)</Label>
+                    <Input id="tableNumber" inputMode="numeric" value={tableNumber} onChange={(e) => setTableNumber(e.target.value.replace(/[^0-9]/g, ""))} placeholder="7" />
+                  </div>
                 </div>
+              )}
+
+              {formError && (
+                <div className="text-sm text-red-700 bg-red-50 border border-red-200 rounded p-2">{formError}</div>
+              )}
+
+              <div className="flex flex-col sm:flex-row justify-end gap-3">
+                <Button variant="outline" asChild>
+                  <Link to={`/restaurant/${encodeURIComponent(restaurant.id)}`}>Back</Link>
+                </Button>
+                <Button disabled={!canSubmit || submitting} onClick={onSubmit}>{!isAuthed ? "Signup to place order" : (submitting ? "Placing…" : "Place Order")}</Button>
               </div>
-            )}
+            </CardContent>
+          </Card>
 
-            <CartSummaryWeb items={cartItems as CartItem[]} />
+          <div className="lg:sticky lg:top-[88px]">
+            <Card>
+              <CardHeader>
+                <CardTitle>Summary</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <CartSummaryWeb items={cartItems as CartItem[]} />
+              </CardContent>
+            </Card>
+          </div>
+        </div>
 
-            {formError && (
-              <div className="text-sm text-red-700 bg-red-50 border border-red-200 rounded p-2">{formError}</div>
-            )}
-
-            <div className="flex flex-col sm:flex-row justify-end gap-3">
-              <Button variant="outline" asChild>
-                <Link to={`/restaurant/${encodeURIComponent(restaurant.id)}`}>Back</Link>
-              </Button>
-              <Button disabled={!canSubmit || submitting} onClick={onSubmit}>{submitting ? "Placing…" : "Place Order"}</Button>
-            </div>
-          </CardContent>
-        </Card>
+        <AuthModalWeb open={authOpen} onOpenChange={setAuthOpen} onAuthed={() => setAuthOpen(false)} />
       </div>
     );
   }
@@ -198,16 +233,30 @@ export default function OrderNew() {
   if (step === 'payment') {
     const totalAmt = (cartItems || []).reduce((s, it) => s + (Number(it.price)||0) * (Number(it.quantity)||0), 0);
     return (
-      <div className="container mx-auto px-6 py-10">
+      <div className="container mx-auto px-6 py-8">
         <NewOrderHeaderWeb restaurant={restaurant} />
-        <div className="max-w-xl mx-auto text-center mb-4">
-          <h2 className="text-xl font-bold">Payment</h2>
-          <p className="text-muted-foreground">Select how you’d like to pay. Total: {totalAmt.toFixed(2)}</p>
+        {/* Step indicator */}
+        <div className="flex items-center gap-2 text-xs text-muted-foreground mb-4">
+          <div className={`px-2 py-1 rounded bg-muted`}>1. Details</div>
+          <div className="h-px flex-1 bg-border" />
+          <div className={`px-2 py-1 rounded ${step === 'payment' ? 'bg-primary/10 text-primary' : 'bg-muted'}`}>2. Payment</div>
+          <div className="h-px flex-1 bg-border" />
+          <div className={`px-2 py-1 rounded bg-muted`}>3. Confirmation</div>
         </div>
-        <div className="flex items-center justify-center gap-3">
-          <Button onClick={() => setShowPay(true)}>Pay Now</Button>
-          <Button variant="outline" onClick={() => { setShowPay(false); setPaidJustNow(false); if (lastOrderId) { setStep('confirmation'); navigate(`/orders/confirmation/${encodeURIComponent(lastOrderId)}`); } }}>Pay Later</Button>
-        </div>
+
+        <Card className="max-w-2xl mx-auto">
+          <CardHeader>
+            <CardTitle>Payment</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground">Select how you’d like to pay. Total: {totalAmt.toFixed(2)}</p>
+            <div className="flex items-center justify-center gap-3">
+              <Button onClick={() => { if (!isAuthed) { setAuthOpen(true); return; } setShowPay(true); }}>Pay Now</Button>
+              <Button variant="outline" onClick={() => { setShowPay(false); setPaidJustNow(false); if (lastOrderId) { setStep('confirmation'); navigate(`/orders/confirmation/${encodeURIComponent(lastOrderId)}`); } }}>Pay Later</Button>
+            </div>
+          </CardContent>
+        </Card>
+
         <PaymentMethodSheetWeb
           open={showPay}
           onOpenChange={setShowPay}

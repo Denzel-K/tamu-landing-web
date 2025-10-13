@@ -1,13 +1,23 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useCart } from "@/lib/cart/CartContext";
 import { useNavigate } from "react-router-dom";
+import { authLocal, authBus } from "@/lib/auth/authLocal";
+import AuthModalWeb from "@/components/auth/AuthModalWeb";
 
 export default function FloatingCartWeb({ restaurantId }: { restaurantId: string }) {
   const { items, initiator, preOrderEnabled, clearCart } = useCart();
   const navigate = useNavigate();
   const [expanded, setExpanded] = useState(false);
+  const [authOpen, setAuthOpen] = useState(false);
+  const [isAuthed, setIsAuthed] = useState<boolean>(!!authLocal.getAccessToken());
+
+  useEffect(() => {
+    const unsubLogin = authBus.subscribe('login', () => setIsAuthed(true));
+    const unsubLogout = authBus.subscribe('logout', () => setIsAuthed(false));
+    return () => { unsubLogin(); unsubLogout(); };
+  }, []);
   const visible = useMemo(() => {
     if (!items || items.length === 0) return false;
     if (initiator === 'order') return true;
@@ -70,14 +80,19 @@ export default function FloatingCartWeb({ restaurantId }: { restaurantId: string
             </div>
             <div className="flex items-center gap-2 shrink-0">
               {initiator === 'order' && (
-                <Button onClick={() => navigate(`/orders/new?restaurantId=${encodeURIComponent(restaurantId)}`)}>Checkout</Button>
+                <Button onClick={() => { if (!isAuthed) { setAuthOpen(true); return; } navigate(`/orders/new?restaurantId=${encodeURIComponent(restaurantId)}`); }}>
+                  {isAuthed ? 'Checkout' : 'Signup to checkout'}
+                </Button>
               )}
               {initiator === 'reserve' && preOrderEnabled && (
-                <Button onClick={() => navigate(`/reservations/new?restaurantId=${encodeURIComponent(restaurantId)}`)}>Add to Reservation</Button>
+                <Button onClick={() => { if (!isAuthed) { setAuthOpen(true); return; } navigate(`/reservations/new?restaurantId=${encodeURIComponent(restaurantId)}`); }}>
+                  {isAuthed ? 'Add to Reservation' : 'Signup to reserve'}
+                </Button>
               )}
             </div>
           </div>
         </Card>
+        <AuthModalWeb open={authOpen} onOpenChange={setAuthOpen} onAuthed={() => setAuthOpen(false)} />
       </div>
     </div>
   );

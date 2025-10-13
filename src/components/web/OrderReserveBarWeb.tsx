@@ -1,13 +1,23 @@
-import React, { useMemo, useEffect, useRef } from "react";
+import React, { useMemo, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { useCart } from "@/lib/cart/CartContext";
 import { useNavigate } from "react-router-dom";
+import { authLocal, authBus } from "@/lib/auth/authLocal";
+import AuthModalWeb from "@/components/auth/AuthModalWeb";
 
 export default function OrderReserveBarWeb({ restaurantId }: { restaurantId: string }) {
   const { items, initiator, preOrderEnabled, setInitiator, setPreOrderEnabled } = useCart();
   const navigate = useNavigate();
   const barRef = useRef<HTMLDivElement | null>(null);
+  const [authOpen, setAuthOpen] = useState(false);
+  const [isAuthed, setIsAuthed] = useState<boolean>(!!authLocal.getAccessToken());
+
+  useEffect(() => {
+    const unsubLogin = authBus.subscribe('login', () => setIsAuthed(true));
+    const unsubLogout = authBus.subscribe('logout', () => setIsAuthed(false));
+    return () => { unsubLogin(); unsubLogout(); };
+  }, []);
 
   useEffect(() => {
     const el = barRef.current;
@@ -27,14 +37,20 @@ export default function OrderReserveBarWeb({ restaurantId }: { restaurantId: str
 
   const hasItems = items.length > 0;
   const proceedLabel = useMemo(() => {
-    if (initiator === 'order') return hasItems ? 'Go to checkout' : 'Browse menu';
-    if (initiator === 'reserve') return 'Continue to reservation';
+    if (initiator === 'order') {
+      if (!hasItems) return 'Browse menu';
+      return isAuthed ? 'Go to checkout' : 'Signup to checkout';
+    }
+    if (initiator === 'reserve') {
+      return isAuthed ? 'Continue to reservation' : 'Signup to reserve';
+    }
     return 'Get started';
-  }, [initiator, hasItems]);
+  }, [initiator, hasItems, isAuthed]);
 
   const proceed = () => {
     if (initiator === 'order') {
       if (hasItems) {
+        if (!isAuthed) { setAuthOpen(true); return; }
         navigate(`/orders/new?restaurantId=${encodeURIComponent(restaurantId)}`);
       } else {
         // On web, keep UX simple: encourage user to browse menu (stay on page)
@@ -43,6 +59,7 @@ export default function OrderReserveBarWeb({ restaurantId }: { restaurantId: str
       return;
     }
     if (initiator === 'reserve') {
+      if (!isAuthed) { setAuthOpen(true); return; }
       navigate(`/reservations/new?restaurantId=${encodeURIComponent(restaurantId)}`);
       return;
     }
@@ -78,6 +95,10 @@ export default function OrderReserveBarWeb({ restaurantId }: { restaurantId: str
             )}
           </div>
         </div>
+        <AuthModalWeb open={authOpen} onOpenChange={setAuthOpen} onAuthed={() => {
+          setAuthOpen(false);
+          // After auth, auto-continue the pending action if user clicks again.
+        }} />
       </div>
     </div>
   );

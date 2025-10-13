@@ -102,24 +102,30 @@ export default function ReservationConfirmation() {
 
   return (
     <div className="container mx-auto px-6 py-10">
-      <Card>
+      <Card className="max-w-3xl mx-auto">
         <CardHeader>
-          <CardTitle>Reservation Placed</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Connection chip */}
-          <div className="flex items-center gap-2 text-xs">
-            <span className={`px-2 py-1 rounded-full ${connState === 'connected' ? 'bg-emerald-500/20 text-emerald-700' : connState === 'connecting' ? 'bg-blue-500/20 text-blue-700' : 'bg-gray-500/20 text-gray-700'}`}>{connState.toUpperCase()}</span>
+          <div className="flex items-center gap-3">
+            <div className="h-12 w-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-6 w-6"><path fillRule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12Zm13.36-1.814a.75.75 0 1 0-1.22-.872l-3.236 4.52-1.66-1.66a.75.75 0 1 0-1.06 1.06l2.25 2.25a.75.75 0 0 0 1.156-.094l3.83-5.204Z" clipRule="evenodd"/></svg>
+            </div>
+            <div>
+              <CardTitle>Reservation Placed</CardTitle>
+              <div className="text-xs text-muted-foreground">We’ve received your reservation</div>
+            </div>
+            <div className="ml-auto">
+              <span className={`px-2 py-1 rounded-full text-[11px] ${reservation.status === 'pending' ? 'bg-blue-500/20 text-blue-700' : reservation.status === 'confirmed' ? 'bg-green-500/20 text-green-700' : reservation.status === 'cancelled' ? 'bg-red-500/20 text-red-700' : 'bg-gray-500/20 text-gray-700'}`}>{String(reservation.status || 'pending').toUpperCase()}</span>
+            </div>
           </div>
-
+        </CardHeader>
+        <CardContent className="space-y-6">
           {/* Header row */}
-          <div className="flex items-center justify-between">
+          <div className="grid sm:grid-cols-2 gap-4">
             <div>
               <div className="text-sm text-muted-foreground">Restaurant</div>
               <div className="font-semibold">{reservation.restaurant?.name || 'Restaurant'}</div>
             </div>
-            <div className="text-right">
-              <div className="text-sm text-muted-foreground">Reservation ID</div>
+            <div className="text-sm sm:text-right">
+              <div className="text-muted-foreground">Reservation ID</div>
               <div className="font-mono">#{String(id).slice(-6).toUpperCase()}</div>
             </div>
           </div>
@@ -129,11 +135,6 @@ export default function ReservationConfirmation() {
             <span className="font-semibold">{String(reservation.type || '').toUpperCase()}</span>
             <span>• Party {reservation.partySize || '-'}</span>
             <span>• {reservation.date || ''} {reservation.time || ''}</span>
-          </div>
-
-          {/* Status chip */}
-          <div className="flex items-center gap-2">
-            <span className={`px-2 py-1 rounded-full text-[11px] ${reservation.status === 'pending' ? 'bg-blue-500/20 text-blue-700' : reservation.status === 'confirmed' ? 'bg-green-500/20 text-green-700' : reservation.status === 'cancelled' ? 'bg-red-500/20 text-red-700' : 'bg-gray-500/20 text-gray-700'}`}>{String(reservation.status || 'pending').toUpperCase()}</span>
           </div>
 
           {/* Optional preordered items list */}
@@ -156,9 +157,14 @@ export default function ReservationConfirmation() {
           )}
 
           {/* Actions */}
-          <div className="flex gap-2">
-            <Button className="flex-1" onClick={() => navigate('/discover')}>Discover</Button>
-            <Button variant="outline" className="flex-1" onClick={() => navigate(`/restaurant/${encodeURIComponent(reservation.restaurant?.id || '')}`)}>Restaurant</Button>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Button className="flex-1" onClick={() => navigate(`/restaurant/${encodeURIComponent(reservation.restaurant?.id || '')}`)}>Restaurant</Button>
+            <Button variant="secondary" className="flex-1" onClick={() => navigate('/discover')}>Discover</Button>
+          </div>
+
+          {/* Connection chip */}
+          <div className="text-xs">
+            <span className={`px-2 py-1 rounded-full ${connState === 'connected' ? 'bg-emerald-500/20 text-emerald-700' : connState === 'connecting' ? 'bg-blue-500/20 text-blue-700' : 'bg-gray-500/20 text-gray-700'}`}>{connState.toUpperCase()}</span>
           </div>
         </CardContent>
       </Card>

@@ -13,6 +13,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
+import { authLocal, authBus } from "@/lib/auth/authLocal";
+import AuthModalWeb from "@/components/auth/AuthModalWeb";
 
 type ReservationPolicy = {
   requireFee?: boolean;
@@ -50,6 +52,16 @@ export default function ReservationNew() {
   const [paymentConfig, setPaymentConfig] = useState<PaymentConfigResponse['config'] | null>(null);
   const [showPay, setShowPay] = useState(false);
   const [pendingRef, setPendingRef] = useState<string | null>(null);
+  const [authOpen, setAuthOpen] = useState(false);
+  const [isAuthed, setIsAuthed] = useState<boolean>(!!authLocal.getAccessToken());
+
+  useEffect(() => {
+    // Gate: prompt login if unauthenticated when landing
+    if (!isAuthed) setAuthOpen(true);
+    const unsubLogin = authBus.subscribe('login', () => { setIsAuthed(true); setAuthOpen(false); });
+    const unsubLogout = authBus.subscribe('logout', () => { setIsAuthed(false); setAuthOpen(true); });
+    return () => { unsubLogin(); unsubLogout(); };
+  }, [isAuthed]);
 
   useEffect(() => {
     let mounted = true;
@@ -99,6 +111,7 @@ export default function ReservationNew() {
   }, [restaurant, type, partySize, date, time, policy, policyAccepted]);
 
   const onSubmit = async () => {
+    if (!isAuthed) { setAuthOpen(true); return; }
     if (!restaurant) return;
     setSubmitting(true);
     try {
@@ -132,42 +145,127 @@ export default function ReservationNew() {
   // Select step UI
   if (step === 'select') {
     return (
-      <div className="container mx-auto px-6 py-10">
+      <div className="container mx-auto px-6 py-8">
         <NewReservationHeaderWeb restaurant={restaurant} />
-        <Card>
+        {/* Step indicator */}
+        <div className="flex items-center gap-2 text-xs text-muted-foreground mb-4">
+          <div className={`px-2 py-1 rounded ${step === 'select' ? 'bg-primary/10 text-primary' : 'bg-muted'}`}>1. Details</div>
+          <div className="h-px flex-1 bg-border" />
+          <div className={`px-2 py-1 rounded bg-muted`}>2. Review</div>
+          <div className="h-px flex-1 bg-border" />
+          <div className={`px-2 py-1 rounded bg-muted`}>3. Confirmation</div>
+        </div>
+
+        <div className="grid lg:grid-cols-3 gap-6 items-start">
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle>Reservation Details</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <ReservationTypeSelectorWeb
+                availableReservationTypes={restaurant.availableReservationTypes || []}
+                selectedReservationType={type || undefined}
+                onSelectReservationType={(t) => setType(t)}
+              />
+
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="partySize">Party Size</Label>
+                  <Input id="partySize" inputMode="numeric" value={partySize} onChange={(e) => setPartySize(e.target.value.replace(/[^0-9]/g, ""))} placeholder="2" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="occasion">Occasion (optional)</Label>
+                  <Input id="occasion" value={occasion} onChange={(e) => setOccasion(e.target.value)} placeholder="Birthday, Anniversary…" />
+                </div>
+              </div>
+
+              <DateTimeFieldWeb
+                valueDate={date}
+                valueTime={time}
+                onChangeDate={(v) => setDate(v)}
+                onChangeTime={(v) => setTime(v)}
+              />
+
+              <div className="space-y-2">
+                <Label htmlFor="notes">Special Requests (optional)</Label>
+                <Input id="notes" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Any special requests" />
+              </div>
+
+              {policy && (
+                <div className="rounded border border-border p-4 space-y-2">
+                  <div className="text-sm text-muted-foreground">
+                    {policy.requireFee ? (
+                      <>Reservation fee required: {Number(policy.feeAmount || 0).toFixed(2)} {policy.feeCurrency || 'USD'}</>
+                    ) : (
+                      <>No reservation fee required</>
+                    )}
+                  </div>
+                  {typeof policy.redemption?.percent === 'number' && (
+                    <div className="text-xs text-muted-foreground">Redeemable at restaurant: {policy.redemption.percent}%</div>
+                  )}
+                  <label className="flex items-start gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      className="mt-1"
+                      checked={policyAccepted}
+                      onChange={(e) => setPolicyAccepted(e.target.checked)}
+                    />
+                    <span>I have read and agree to the reservation policy.</span>
+                  </label>
+                </div>
+              )}
+
+              <div className="flex flex-col sm:flex-row justify-end gap-3">
+                <Button variant="outline" asChild>
+                  <Link to={`/restaurant/${encodeURIComponent(restaurant.id)}`}>Back</Link>
+                </Button>
+                <Button
+                  disabled={!canSubmit}
+                  onClick={() => { if (!isAuthed) { setAuthOpen(true); return; } setStep('summary'); }}
+                >
+                  {isAuthed ? 'Review Reservation' : 'Signup to reserve'}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="lg:sticky lg:top-[88px]">
+            <Card>
+              <CardHeader>
+                <CardTitle>Summary</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ReservationSummaryWeb reservation={{ type, partySize: Number(partySize)||0, date, time, restaurant: { name: restaurant.name } }} />
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        <AuthModalWeb open={authOpen} onOpenChange={setAuthOpen} onAuthed={() => setAuthOpen(false)} />
+      </div>
+    );
+  }
+
+  // Summary step UI
+  return (
+    <div className="container mx-auto px-6 py-8">
+      <NewReservationHeaderWeb restaurant={restaurant} />
+      {/* Step indicator */}
+      <div className="flex items-center gap-2 text-xs text-muted-foreground mb-4">
+        <div className={`px-2 py-1 rounded bg-muted`}>1. Details</div>
+        <div className="h-px flex-1 bg-border" />
+        <div className={`px-2 py-1 rounded ${step === 'summary' ? 'bg-primary/10 text-primary' : 'bg-muted'}`}>2. Review</div>
+        <div className="h-px flex-1 bg-border" />
+        <div className={`px-2 py-1 rounded bg-muted`}>3. Confirmation</div>
+      </div>
+
+      <div className="grid lg:grid-cols-3 gap-6 items-start">
+        <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle>Reservation Details</CardTitle>
+            <CardTitle>Review & Confirm</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <ReservationTypeSelectorWeb
-              availableReservationTypes={restaurant.availableReservationTypes || []}
-              selectedReservationType={type || undefined}
-              onSelectReservationType={(t) => setType(t)}
-            />
-
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="partySize">Party Size</Label>
-                <Input id="partySize" inputMode="numeric" value={partySize} onChange={(e) => setPartySize(e.target.value.replace(/[^0-9]/g, ""))} placeholder="2" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="occasion">Occasion (optional)</Label>
-                <Input id="occasion" value={occasion} onChange={(e) => setOccasion(e.target.value)} placeholder="Birthday, Anniversary…" />
-              </div>
-            </div>
-
-            <DateTimeFieldWeb
-              valueDate={date}
-              valueTime={time}
-              onChangeDate={(v) => setDate(v)}
-              onChangeTime={(v) => setTime(v)}
-            />
-
-            <div className="space-y-2">
-              <Label htmlFor="notes">Special Requests (optional)</Label>
-              <Input id="notes" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Any special requests" />
-            </div>
-
+            <ReservationSummaryWeb reservation={{ type, partySize: Number(partySize)||0, date, time, restaurant: { name: restaurant.name } }} />
             {policy && (
               <div className="rounded border border-border p-4 space-y-2">
                 <div className="text-sm text-muted-foreground">
@@ -192,79 +290,58 @@ export default function ReservationNew() {
               </div>
             )}
 
-            <div className="flex flex-col sm:flex-row justify-end gap-3">
-              <Button variant="outline" asChild>
-                <Link to={`/restaurant/${encodeURIComponent(restaurant.id)}`}>Back</Link>
-              </Button>
+            <div className="flex flex-col sm:flex-row gap-3 justify-end">
+              <Button variant="outline" onClick={() => setStep('select')}>Edit</Button>
               <Button
-                disabled={!canSubmit}
-                onClick={() => setStep('summary')}
+                disabled={submitting || !policyAccepted}
+                onClick={async () => {
+                  if (!isAuthed) { setAuthOpen(true); return; }
+                  const feeRequired = !!policy?.requireFee && Number(policy?.feeAmount || 0) > 0;
+                  if (feeRequired) {
+                    try { if (!paymentMethods) setPaymentMethods(await fetchPaymentMethodsForRestaurant(restaurant.id)); } catch (e) { /* non-fatal */ }
+                    try { if (!paymentConfig) { const pc = await fetchPaymentConfigForBusiness(restaurant.id); setPaymentConfig(pc?.config || null); } } catch (e) { /* non-fatal */ }
+                    setPendingRef(`resv:${restaurant.id}:${Date.now()}`);
+                    setShowPay(true);
+                    return;
+                  }
+                  await onSubmit();
+                }}
               >
-                Review Reservation
+                {!isAuthed ? 'Signup to reserve' : (submitting ? 'Placing…' : 'Place Reservation')}
               </Button>
             </div>
           </CardContent>
         </Card>
-      </div>
-    );
-  }
 
-  // Summary step UI
-  return (
-    <div className="container mx-auto px-6 py-10">
-      <NewReservationHeaderWeb restaurant={restaurant} />
-      <Card>
-        <CardHeader>
-          <CardTitle>Review & Confirm</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <ReservationSummaryWeb reservation={{ type, partySize: Number(partySize)||0, date, time, restaurant: { name: restaurant.name } }} />
-
-          {policy && (
-            <div className="rounded border border-border p-4 space-y-2">
-              <div className="text-sm text-muted-foreground">
-                {policy.requireFee ? (
-                  <>Reservation fee required: {Number(policy.feeAmount || 0).toFixed(2)} {policy.feeCurrency || 'USD'}</>
-                ) : (
-                  <>No reservation fee required</>
-                )}
-              </div>
-              {typeof policy.redemption?.percent === 'number' && (
-                <div className="text-xs text-muted-foreground">Redeemable at restaurant: {policy.redemption.percent}%</div>
+        <div className="lg:sticky lg:top-[88px]">
+          <Card>
+            <CardHeader>
+              <CardTitle>Policy</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {policy ? (
+                <div className="text-sm text-muted-foreground space-y-2">
+                  <div>
+                    {policy.requireFee ? (
+                      <>Reservation fee required: {Number(policy.feeAmount || 0).toFixed(2)} {policy.feeCurrency || 'USD'}</>
+                    ) : (
+                      <>No reservation fee required</>
+                    )}
+                  </div>
+                  {typeof policy.redemption?.percent === 'number' && (
+                    <div>Redeemable at restaurant: {policy.redemption.percent}%</div>
+                  )}
+                  {typeof policy.freeCancelWindowMins === 'number' && (
+                    <div>Free cancel window: {policy.freeCancelWindowMins} mins</div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-sm text-muted-foreground">No specific policy provided.</div>
               )}
-              <label className="flex items-start gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  className="mt-1"
-                  checked={policyAccepted}
-                  onChange={(e) => setPolicyAccepted(e.target.checked)}
-                />
-                <span>I have read and agree to the reservation policy.</span>
-              </label>
-            </div>
-          )}
-
-          <div className="flex flex-col sm:flex-row gap-3 justify-end">
-            <Button variant="outline" onClick={() => setStep('select')}>Edit</Button>
-            <Button
-              disabled={submitting || !policyAccepted}
-              onClick={async () => {
-                const feeRequired = !!policy?.requireFee && Number(policy?.feeAmount || 0) > 0;
-                if (feeRequired) {
-                  try { if (!paymentMethods) setPaymentMethods(await fetchPaymentMethodsForRestaurant(restaurant.id)); } catch (e) { /* non-fatal */ }
-                  try { if (!paymentConfig) { const pc = await fetchPaymentConfigForBusiness(restaurant.id); setPaymentConfig(pc?.config || null); } } catch (e) { /* non-fatal */ }
-                  setPendingRef(`resv:${restaurant.id}:${Date.now()}`);
-                  setShowPay(true);
-                  return;
-                }
-                await onSubmit();
-              }}
-            >
-              {submitting ? 'Placing…' : 'Place Reservation'}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
 
       <PaymentMethodSheetWeb
         open={showPay}
@@ -276,6 +353,7 @@ export default function ReservationNew() {
         onDeferCash={() => { /* not allowed for fee */ }}
         onSubmittedManual={async () => { setShowPay(false); await onSubmit(); }}
       />
+      <AuthModalWeb open={authOpen} onOpenChange={setAuthOpen} onAuthed={() => setAuthOpen(false)} />
     </div>
   );
 }
