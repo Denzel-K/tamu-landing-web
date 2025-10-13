@@ -9,6 +9,7 @@ import { useRestaurantsWeb, type RestaurantWeb } from "@/hooks/useRestaurantsWeb
 import RestaurantCardWeb from "@/components/web/RestaurantCardWeb";
 import CompactRestaurantCardWeb from "@/components/web/CompactRestaurantCardWeb";
 import MapViewRestaurantCardWeb from "@/components/web/MapViewRestaurantCardWeb";
+import NearbyRestaurantsLoaderWeb from "@/components/web/NearbyRestaurantsLoaderWeb";
 
 export default function Discover() {
   const {
@@ -69,18 +70,10 @@ export default function Discover() {
     });
   }, []);
 
-  if (loading) {
+  if (loading && restaurants.length === 0) {
     return (
-      <div className="container mx-auto px-6 py-10">
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <Card key={i} className="p-4">
-              <Skeleton className="h-40 w-full mb-3" />
-              <Skeleton className="h-4 w-1/2 mb-2" />
-              <Skeleton className="h-3 w-2/3" />
-            </Card>
-          ))}
-        </div>
+      <div className="container mx-auto px-6 py-16 flex items-center justify-center">
+        <NearbyRestaurantsLoaderWeb />
       </div>
     );
   }
