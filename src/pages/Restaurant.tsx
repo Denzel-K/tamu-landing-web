@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { getRestaurantById, type Restaurant } from "@/lib/api/restaurants";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,6 +30,13 @@ export default function RestaurantPage() {
   const [activeTab, setActiveTab] = useState<'Menu' | 'Reviews' | 'Info'>('Menu');
   const { initiator, preOrderEnabled } = useCart();
   const showControls = initiator === 'order' || (initiator === 'reserve' && preOrderEnabled);
+
+  // Normalize menu into categories expected by MenuListWeb
+  const normalizedMenu = useMemo(() => {
+    const items = restaurant?.menu || [];
+    // Current API returns a flat array of items; wrap into a single category
+    return [{ category: 'Menu', items }];
+  }, [restaurant?.menu]);
 
   useEffect(() => {
     const unsubLogin = authBus.subscribe('login', () => {
@@ -139,7 +146,7 @@ export default function RestaurantPage() {
               <CardTitle>Menu</CardTitle>
             </CardHeader>
             <CardContent>
-              <MenuListWeb menu={restaurant.menu} restaurantId={restaurant.id} showControls={showControls} />
+              <MenuListWeb menu={normalizedMenu} restaurantId={restaurant.id} showControls={showControls} />
             </CardContent>
           </Card>
         )}

@@ -1,3 +1,4 @@
+/* eslint react-refresh/only-export-components: off */
 import React, { createContext, useContext, useMemo, useState } from "react";
 
 export type CartItem = { id?: string; name: string; price: number; quantity: number };

@@ -102,7 +102,12 @@ export default function OrderNew() {
     setSubmitting(true);
     try {
       // Use cart items
-      const items: NewOrderItem[] = (cartItems || []).map((it) => ({ id: it.id, name: it.name, price: it.price, quantity: it.quantity } as NewOrderItem));
+      const items: NewOrderItem[] = (cartItems || []).map((it) => ({
+        menuItemId: String(it.id || it.name),
+        name: it.name,
+        price: it.price,
+        quantity: it.quantity,
+      }));
       const payload = {
         restaurantId: restaurant.id,
         items,
