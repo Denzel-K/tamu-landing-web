@@ -1,56 +1,73 @@
-import { useEffect, useMemo, useState } from "react";
-import { listRestaurants, type Restaurant } from "@/lib/api/restaurants";
+import { useMemo, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import MapViewLeaflet from "@/components/web/MapViewLeaflet";
+import { useRestaurantsWeb, type RestaurantWeb } from "@/hooks/useRestaurantsWeb";
+import RestaurantCardWeb from "@/components/web/RestaurantCardWeb";
+import CompactRestaurantCardWeb from "@/components/web/CompactRestaurantCardWeb";
+import MapViewRestaurantCardWeb from "@/components/web/MapViewRestaurantCardWeb";
 
 export default function Discover() {
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
+  const {
+    restaurants,
+    featuredRestaurants,
+    loading,
+    refreshing,
+    error,
+    locationPermissionGranted,
+    loadingLocation,
+    requestLocationPermission,
+  } = useRestaurantsWeb();
+
   const [search, setSearch] = useState("");
   const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const carouselRef = useState<HTMLDivElement | null>(null)[0] as any;
   const [activeDistance, setActiveDistance] = useState<number | 'All'>('All');
-  const [activeCuisine, setActiveCuisine] = useState<string>('All');
-
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
-        setError(null);
-        const res = await listRestaurants();
-        if (!mounted) return;
-        setRestaurants(res.restaurants || []);
-      } catch (e: any) {
-        if (!mounted) return; setError(e?.message || "Failed to load restaurants");
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    })();
-    return () => { mounted = false; };
-  }, []);
+  const [activeFilters, setActiveFilters] = useState<string[]>(['All']);
 
   const cuisines = useMemo(() => {
     const set = new Set<string>();
-    restaurants.forEach(r => { if (r.cuisine) set.add(r.cuisine); });
+    restaurants.forEach(r => { if (r.cuisine) set.add(r.cuisine!); });
     return ['All', ...Array.from(set)];
   }, [restaurants]);
 
-  const distanceChips = useMemo(() => (['All', 2, 5, 10] as const), []);
+  const distanceChips = useMemo<ReadonlyArray<'All' | number>>(() => (['All', 2, 5, 10] as const), []);
 
-  const filtered = useMemo(() => {
-    return restaurants.filter(r => {
-      const matchesSearch = !search.trim() || r.name.toLowerCase().includes(search.toLowerCase()) || (r.cuisine || '').toLowerCase().includes(search.toLowerCase());
-      const matchesCuisine = activeCuisine === 'All' || r.cuisine === activeCuisine;
-      const matchesDistance = activeDistance === 'All' ? true : (typeof (r as any).distance === 'number' && (r as any).distance <= activeDistance);
+  const filtered = useMemo<RestaurantWeb[]>(() => {
+    return restaurants.filter((r) => {
+      const q = search.trim().toLowerCase();
+      const matchesSearch = !q || r.name.toLowerCase().includes(q) || (r.cuisine || '').toLowerCase().includes(q);
+      const matchesCuisine = activeFilters.includes('All') || activeFilters.includes(r.cuisine || '');
+      const matchesDistance = activeDistance === 'All' ? true : (typeof r.distance === 'number' && r.distance <= activeDistance);
       return matchesSearch && matchesCuisine && matchesDistance;
     });
-  }, [restaurants, search, activeCuisine, activeDistance]);
+  }, [restaurants, search, activeFilters, activeDistance]);
+
+  const suggestions = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return [] as { id: string; text: string; type: 'restaurant' | 'cuisine' }[];
+    const nameMatches = restaurants
+      .filter(r => r.name.toLowerCase().includes(q))
+      .slice(0, 3)
+      .map((r, i) => ({ id: `r${i}-${r.id}`, text: r.name, type: 'restaurant' as const }));
+    const cuisineMatches = cuisines
+      .filter(c => c !== 'All' && c.toLowerCase().includes(q))
+      .slice(0, 3)
+      .map((c, i) => ({ id: `c${i}-${c}`, text: c, type: 'cuisine' as const }));
+    return [...nameMatches, ...cuisineMatches].slice(0, 5);
+  }, [search, restaurants, cuisines]);
+
+  const toggleFilter = useCallback((value: string) => {
+    setActiveFilters(prev => {
+      if (value === 'All') return ['All'];
+      const has = prev.includes(value);
+      const next = has ? prev.filter(v => v !== value) : [...prev.filter(v => v !== 'All'), value];
+      return next.length === 0 ? ['All'] : next;
+    });
+  }, []);
 
   if (loading) {
     return (
@@ -80,8 +97,8 @@ export default function Discover() {
     <div className="container mx-auto px-6 py-10">
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-4">
         <div>
-          <h1 className="text-2xl font-bold">Discover Restaurants</h1>
-          <p className="text-sm text-muted-foreground">Search, filter, and explore nearby places.</p>
+          <h1 className="text-2xl font-bold">Discover</h1>
+          <p className="text-sm text-muted-foreground">Search, filter, and explore nearby restaurants.</p>
         </div>
         <div className="flex gap-2">
           <Button variant={viewMode === 'list' ? 'default' : 'outline'} onClick={() => setViewMode('list')}>List</Button>
@@ -89,25 +106,70 @@ export default function Discover() {
         </div>
       </div>
 
+      {!locationPermissionGranted && (
+        <div className="mb-3">
+          <Button variant="outline" onClick={requestLocationPermission} disabled={loadingLocation}>
+            {loadingLocation ? 'Locating…' : 'Enable location to see distances'}
+          </Button>
+        </div>
+      )}
+
+      {/* Featured above search (list view only) */}
+      {viewMode === 'list' && featuredRestaurants && featuredRestaurants.length > 0 && (
+        <div className="mb-5">
+          <h2 className="text-lg font-semibold mb-2">Featured</h2>
+          <div className="overflow-x-auto no-scrollbar">
+            <div className="flex gap-4 pr-2" style={{ minWidth: '100%' }}>
+              {featuredRestaurants.map((r) => (
+                <div key={r.id} className="w-[320px] shrink-0">
+                  <RestaurantCardWeb restaurant={r} />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Search and filters */}
       <div className="flex flex-col gap-3 mb-4">
-        <Input placeholder="Search restaurants or cuisines" value={search} onChange={(e) => setSearch(e.target.value)} />
+        <div className="relative">
+          <Input placeholder="Search restaurants or cuisines" value={search} onChange={(e) => setSearch(e.target.value)} />
+          {suggestions.length > 0 && (
+            <div className="absolute z-10 mt-1 w-full bg-card border border-border rounded-md shadow-sm">
+              {suggestions.map(s => (
+                <button
+                  key={s.id}
+                  className="w-full text-left px-3 py-2 hover:bg-accent hover:text-accent-foreground text-sm"
+                  onClick={() => setSearch(s.text)}
+                >
+                  {s.text}
+                  <span className="ml-2 text-muted-foreground text-xs">{s.type}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
         <div className="flex flex-wrap gap-2 items-center">
           {distanceChips.map((d) => (
-            <button key={String(d)} onClick={() => setActiveDistance(d as any)} className={`px-3 py-1.5 rounded-full border text-sm ${String(activeDistance) === String(d) ? 'bg-primary text-white border-primary' : 'bg-card text-foreground border-border'}`}>{d === 'All' ? 'Any distance' : `${d} km`}</button>
+            <button key={String(d)} onClick={() => setActiveDistance(d)} className={`px-3 py-1.5 rounded-full border text-sm ${String(activeDistance) === String(d) ? 'bg-primary text-white border-primary' : 'bg-card text-foreground border-border'}`}>{d === 'All' ? 'Any distance' : `${d} km`}</button>
           ))}
         </div>
         <div className="flex flex-wrap gap-2 items-center">
-          {cuisines.map(c => (
-            <button key={c} onClick={() => setActiveCuisine(c)} className={`px-3 py-1.5 rounded-full border text-sm ${activeCuisine === c ? 'bg-primary text-white border-primary' : 'bg-card text-foreground border-border'}`}>{c}</button>
-          ))}
+          {cuisines.map(c => {
+            const active = activeFilters.includes(c);
+            return (
+              <button key={c} onClick={() => toggleFilter(c)} className={`px-3 py-1.5 rounded-full border text-sm ${active ? 'bg-primary text-white border-primary' : 'bg-card text-foreground border-border'}`}>{c}</button>
+            );
+          })}
         </div>
       </div>
+
+      {/* Featured moved above search and hidden in map view */}
 
       {viewMode === 'map' ? (
         <>
           <MapViewLeaflet
-            restaurants={filtered as any}
+            restaurants={filtered}
             selectedIndex={selectedIndex}
             onMarkerClick={(id) => {
               const idx = filtered.findIndex(r => r.id === id);
@@ -121,7 +183,31 @@ export default function Discover() {
               }
             }}
           />
-          <div id="map-cards" className="mt-3 overflow-x-auto whitespace-nowrap no-scrollbar">
+          <div
+            id="map-cards"
+            className="mt-3 overflow-x-auto whitespace-nowrap no-scrollbar focus:outline-none"
+            tabIndex={0}
+            aria-label="Restaurant map carousel"
+            onKeyDown={(e) => {
+              if (e.key === 'ArrowRight') {
+                e.preventDefault();
+                const next = Math.min(selectedIndex + 1, filtered.length - 1);
+                if (next !== selectedIndex) {
+                  setSelectedIndex(next);
+                  const scroller = document.getElementById('map-cards');
+                  if (scroller) scroller.scrollTo({ left: next * 300, behavior: 'smooth' });
+                }
+              } else if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                const prev = Math.max(selectedIndex - 1, 0);
+                if (prev !== selectedIndex) {
+                  setSelectedIndex(prev);
+                  const scroller = document.getElementById('map-cards');
+                  if (scroller) scroller.scrollTo({ left: prev * 300, behavior: 'smooth' });
+                }
+              }
+            }}
+          >
             <div className="flex gap-3" style={{ minWidth: '100%' }} onScroll={(e) => {
               const target = e.currentTarget as HTMLDivElement;
               const cardWidth = 300; // must match above
@@ -129,34 +215,39 @@ export default function Discover() {
               if (idx !== selectedIndex) setSelectedIndex(Math.max(0, Math.min(filtered.length - 1, idx)));
             }}>
               {filtered.map((r, i) => (
-                <div id={`map-card-${r.id}`} key={r.id} className={`w-[280px] shrink-0 ${i === selectedIndex ? 'ring-2 ring-primary' : ''}`} onMouseEnter={() => setSelectedIndex(i)}>
-                  <Card className="overflow-hidden">
-                    <CardHeader>
-                      <CardTitle>{r.name}</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-sm text-muted-foreground mb-3">{r.cuisine || ""}</p>
-                      <Link to={`/restaurant/${encodeURIComponent(r.id)}`} className="underline text-primary">View</Link>
-                    </CardContent>
-                  </Card>
+                <div
+                  id={`map-card-${r.id}`}
+                  key={r.id}
+                  className={`w-[300px] shrink-0`}
+                >
+                  <MapViewRestaurantCardWeb
+                    restaurant={r}
+                    isActive={i === selectedIndex}
+                    asLink={false}
+                    onClick={() => {
+                      if (i !== selectedIndex) {
+                        setSelectedIndex(i);
+                        const scroller = document.getElementById('map-cards');
+                        if (scroller) scroller.scrollTo({ left: i * 300, behavior: 'smooth' });
+                      }
+                    }}
+                  />
                 </div>
               ))}
             </div>
           </div>
         </>
       ) : (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map((r) => (
-            <Card key={r.id} className="overflow-hidden">
-              <CardHeader>
-                <CardTitle>{r.name}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground mb-3">{r.cuisine || ""}</p>
-                <Link to={`/restaurant/${encodeURIComponent(r.id)}`} className="underline text-primary">View</Link>
-              </CardContent>
-            </Card>
-          ))}
+        <div>
+          <h2 className="text-lg font-semibold mb-2">Nearby Restaurants</h2>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filtered.map((r) => (
+              <CompactRestaurantCardWeb key={r.id} restaurant={r} />
+            ))}
+          </div>
+          {filtered.length === 0 && (
+            <div className="text-center text-muted-foreground py-10">No restaurants found. Try adjusting your search or filters.</div>
+          )}
         </div>
       )}
     </div>
