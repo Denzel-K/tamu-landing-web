@@ -254,8 +254,8 @@ export const CTASection = ({ selectedView }: CTASectionProps) => {
           </DialogHeader>
           <div className="space-y-4">
             <div className="flex flex-col sm:flex-row gap-3">
-              <Button onClick={() => { setIsTryHereOpen(false); }} asChild>
-                <a href="/discover" className="inline-flex items-center justify-center px-4 py-2">Explore nearby restaurants</a>
+              <Button onClick={() => { setIsTryHereOpen(false); navigate('/discover'); }}>
+                Explore nearby restaurants
               </Button>
               <Button variant="outline" onClick={() => setShowScanner((s) => !s)} className="inline-flex items-center gap-2">
                 <QrCode className="w-4 h-4" />
