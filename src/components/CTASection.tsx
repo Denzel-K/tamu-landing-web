@@ -1,9 +1,12 @@
 import { motion } from "framer-motion";
-import { useState } from "react";
-import { ExternalLink, Apple, Smartphone, Download } from "lucide-react";
+import { useCallback, useState } from "react";
+import { ExternalLink, Apple, Smartphone, Download, QrCode } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ApkDownloadModal } from "@/components/ApkDownloadModal";
 import appConfig from "@/config/app-config.json";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import QRScanner from "@/components/QRScanner";
+import { useNavigate } from "react-router-dom";
 
 interface CTASectionProps {
   selectedView: "mobile" | "web" | null;
@@ -11,6 +14,54 @@ interface CTASectionProps {
 
 export const CTASection = ({ selectedView }: CTASectionProps) => {
   const [isApkModalOpen, setIsApkModalOpen] = useState(false);
+  const [isTryHereOpen, setIsTryHereOpen] = useState(false);
+  const [showScanner, setShowScanner] = useState(true);
+  const navigate = useNavigate();
+
+  const handleQrDetected = useCallback((text: string) => {
+    try {
+      // Normalize and route to Restaurant page if possible
+      const url = new URL(text, window.location.origin);
+      // Match /r/:id or /restaurant/:id or /enter?rid=...
+      const path = url.pathname;
+      let id: string | null = null;
+      const rMatch = path.match(/\/r\/([^/?#]+)/);
+      const restaurantMatch = path.match(/\/restaurant\/([^/?#]+)/);
+      if (rMatch && rMatch[1]) {
+        id = decodeURIComponent(rMatch[1]);
+      } else if (restaurantMatch && restaurantMatch[1]) {
+        id = decodeURIComponent(restaurantMatch[1]);
+      } else if (path.endsWith('/enter') || path.endsWith('/Enter')) {
+        const rid = url.searchParams.get('rid');
+        if (rid) id = rid;
+      }
+      if (id) {
+        setIsTryHereOpen(false);
+        navigate(`/restaurant/${encodeURIComponent(id)}`);
+        return;
+      }
+      // As a fallback, if it looks like a full URL under our domain with /r?id in query
+      const rid = url.searchParams.get('rid') || url.searchParams.get('id');
+      if (rid) {
+        setIsTryHereOpen(false);
+        navigate(`/restaurant/${encodeURIComponent(rid)}`);
+        return;
+      }
+      // If we can't parse, just navigate to discover and close.
+      setIsTryHereOpen(false);
+      navigate('/discover');
+    } catch (err) {
+      // Not a valid URL, attempt to parse simple patterns
+      const simple = text.match(/(?:^|\/)r\/(\w+)/) || text.match(/(?:^|\/)restaurant\/(\w+)/);
+      if (simple && simple[1]) {
+        setIsTryHereOpen(false);
+        navigate(`/restaurant/${encodeURIComponent(simple[1])}`);
+        return;
+      }
+      setIsTryHereOpen(false);
+      navigate('/discover');
+    }
+  }, [navigate]);
 
   return (
     <section className="relative py-24 overflow-hidden">
@@ -116,8 +167,8 @@ export const CTASection = ({ selectedView }: CTASectionProps) => {
                   </motion.button>
                 )}
                 {/* In-restaurant mode CTA */}
-                <motion.a
-                  href="/discover"
+                <motion.button
+                  onClick={() => { setShowScanner(true); setIsTryHereOpen(true); }}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   className="inline-block"
@@ -129,7 +180,7 @@ export const CTASection = ({ selectedView }: CTASectionProps) => {
                   >
                     Try it right here
                   </Button>
-                </motion.a>
+                </motion.button>
               </div>
 
               {!appConfig.isOfficial && (
@@ -191,6 +242,37 @@ export const CTASection = ({ selectedView }: CTASectionProps) => {
 
       {/* APK Download Modal */}
       <ApkDownloadModal isOpen={isApkModalOpen} onClose={() => setIsApkModalOpen(false)} />
+
+      {/* Try it here Modal */}
+      <Dialog open={isTryHereOpen} onOpenChange={setIsTryHereOpen}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Try TAMU in your browser</DialogTitle>
+            <DialogDescription>
+              Go straight to discovery or scan a QR code to enter in-restaurant mode.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Button onClick={() => { setIsTryHereOpen(false); }} asChild>
+                <a href="/discover" className="inline-flex items-center justify-center px-4 py-2">Explore nearby restaurants</a>
+              </Button>
+              <Button variant="outline" onClick={() => setShowScanner((s) => !s)} className="inline-flex items-center gap-2">
+                <QrCode className="w-4 h-4" />
+                {showScanner ? 'Hide scanner' : 'Scan QR to enter'}
+              </Button>
+            </div>
+            {showScanner && (
+              <div className="rounded-lg border p-3">
+                <QRScanner onDetected={handleQrDetected} onCancel={() => setShowScanner(false)} />
+                <div className="mt-2 text-xs text-muted-foreground">
+                  Tip: Allow camera access to scan check‑in QR codes placed at the venue.
+                </div>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 };
