@@ -4,7 +4,7 @@ import { getRestaurantById, type Restaurant } from "@/lib/api/restaurants";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AuthGateModal } from "@/components/AuthGateModal";
 import { Button } from "@/components/ui/button";
-import MenuListWeb from "@/components/web/MenuListWeb";
+import MenuListWeb, { type MenuCategory as WebMenuCategory } from "@/components/web/MenuListWeb";
 import ReviewsWeb from "@/components/web/ReviewsWeb";
 import InfoPanelWeb from "@/components/web/InfoPanelWeb";
 import OrderReserveBarWeb from "@/components/web/OrderReserveBarWeb";
@@ -31,11 +31,49 @@ export default function RestaurantPage() {
   const { initiator, preOrderEnabled } = useCart();
   const showControls = initiator === 'order' || (initiator === 'reserve' && preOrderEnabled);
 
+  // Accept both mobile-style categorized menus and flat item arrays from API
+  type RawMenuItem = {
+    id?: string;
+    name?: string;
+    title?: string;
+    price?: number;
+    amount?: number;
+    description?: string;
+    desc?: string;
+    image?: string;
+    photoUrl?: string;
+    images?: string[];
+  };
+  type RawMenuCategory = { category?: string; items?: RawMenuItem[] };
+
   // Normalize menu into categories expected by MenuListWeb
-  const normalizedMenu = useMemo(() => {
-    const items = restaurant?.menu || [];
-    // Current API returns a flat array of items; wrap into a single category
-    return [{ category: 'Menu', items }];
+  const normalizedMenu = useMemo<WebMenuCategory[]>(() => {
+    const raw = restaurant?.menu as unknown as (RawMenuItem | RawMenuCategory)[] | undefined;
+    if (!Array.isArray(raw) || raw.length === 0) return [] as WebMenuCategory[];
+
+    // Helper to map any menu item shape to the web component shape
+    const mapItem = (it: RawMenuItem) => ({
+      id: it?.id,
+      name: it?.name ?? it?.title ?? '',
+      price: Number(it?.price ?? it?.amount ?? 0),
+      description: it?.description ?? it?.desc ?? undefined,
+      image: it?.image ?? it?.photoUrl ?? (Array.isArray(it?.images) ? it.images[0] : undefined),
+      photoUrl: it?.photoUrl,
+      images: it?.images,
+    });
+
+    // Case 1: Already categorized e.g., [{ category, items: [...] }]
+    const first = raw[0] as RawMenuItem | RawMenuCategory;
+    const looksCategorized = typeof first === 'object' && first !== null && 'category' in (first as RawMenuCategory) && Array.isArray((first as RawMenuCategory).items);
+    if (looksCategorized) {
+      return (raw as RawMenuCategory[]).map((cat): WebMenuCategory => ({
+        category: String(cat?.category ?? 'Menu'),
+        items: Array.isArray(cat?.items) ? cat.items.map(mapItem) : [],
+      }));
+    }
+
+    // Case 2: Flat list -> wrap in a single category
+    return [{ category: 'Menu', items: (raw as RawMenuItem[]).map(mapItem) }];
   }, [restaurant?.menu]);
 
   useEffect(() => {

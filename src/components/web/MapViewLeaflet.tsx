@@ -81,6 +81,8 @@ export default function MapViewLeaflet({
   const containerRef = useRef<HTMLDivElement>(null);
   const activeId = useMemo(() => restaurants[selectedIndex]?.id, [restaurants, selectedIndex]);
   const leafletRef = useRef<LeafletNS | null>(null);
+  const markerClickRef = useRef<typeof onMarkerClick>();
+  useEffect(() => { markerClickRef.current = onMarkerClick; }, [onMarkerClick]);
 
   function makePinIcon(active: boolean) {
     const L = leafletRef.current!;
@@ -99,6 +101,7 @@ export default function MapViewLeaflet({
     });
   }
 
+  // Initialize map when restaurants change (or on mount)
   useEffect(() => {
     let mounted = true;
     (async () => {
@@ -106,6 +109,12 @@ export default function MapViewLeaflet({
       const { L } = await loadLeaflet();
       if (!mounted) return;
       leafletRef.current = L;
+
+      // Clean any existing map
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
 
       // find first valid coordinate
       const valid = restaurants.filter(r => typeof r.coordinates?.latitude === 'number' && typeof r.coordinates?.longitude === 'number');
@@ -120,14 +129,11 @@ export default function MapViewLeaflet({
       }).addTo(map);
       mapRef.current = map;
 
-      // add markers with icons
+      // add markers with default (inactive) icons; active state handled in separate effect
       markersRef.current = valid.map((r) => {
-        const isActive = r.id === activeId;
-        const m = L.marker([r.coordinates!.latitude!, r.coordinates!.longitude!], { icon: makePinIcon(isActive) }).addTo(map);
+        const m = L.marker([r.coordinates!.latitude!, r.coordinates!.longitude!], { icon: makePinIcon(false) }).addTo(map);
         m.bindPopup(r.name);
-        if (onMarkerClick) {
-          m.on('click', () => onMarkerClick(r.id));
-        }
+        m.on('click', () => markerClickRef.current && markerClickRef.current(r.id));
         return { id: r.id, marker: m };
       });
     })();
@@ -140,7 +146,7 @@ export default function MapViewLeaflet({
       }
       markersRef.current = [];
     };
-  }, [activeId, onMarkerClick, restaurants]);
+  }, [restaurants]);
 
   useEffect(() => {
     // fly to selected restaurant
