@@ -17,7 +17,8 @@ import {
   AlertTriangle,
   CheckCircle,
   ArrowLeft,
-  ExternalLink
+  ExternalLink,
+  FileText
 } from "lucide-react";
 import { AccountDeletionSection } from "@/components/privacy/AccountDeletionSection";
 
@@ -69,21 +70,27 @@ const Privacy = () => {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-16 items-center justify-between">
-          <div className="flex items-center gap-4">
+        <div className="container flex h-14 sm:h-16 items-center justify-between px-2 sm:px-4">
+          <div className="flex items-center gap-2 sm:gap-4">
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => window.history.back()}
+              onClick={() => {
+                if (window.history.length > 1) {
+                  window.history.back()
+                } else {
+                  window.location.href = '/'
+                }
+              }}
               className="flex items-center gap-2"
             >
               <ArrowLeft className="h-4 w-4" />
-              Back
+              <span className="hidden sm:inline">Back</span>
             </Button>
             <TamuLogo size="sm" />
             <div>
-              <h1 className="text-lg font-semibold">Privacy Policy</h1>
-              <p className="text-sm text-muted-foreground">Last updated: October 2024</p>
+              <h1 className="text-base sm:text-lg font-semibold">Privacy Policy</h1>
+              <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">Last updated: October 2024</p>
             </div>
           </div>
           <Badge variant="secondary" className="hidden sm:flex">
@@ -93,24 +100,27 @@ const Privacy = () => {
         </div>
       </header>
 
-      <div className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+      <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-8">
           {/* Navigation Sidebar */}
           <div className="lg:col-span-1">
-            <Card className="sticky top-24">
-              <CardHeader>
-                <CardTitle className="text-base">Contents</CardTitle>
+            <Card className="sticky top-20 sm:top-24">
+              <CardHeader className="pb-2 sm:pb-6">
+                <CardTitle className="text-sm sm:text-base flex items-center gap-2">
+                  <FileText className="h-3 w-3 sm:h-4 sm:w-4" />
+                  Contents
+                </CardTitle>
               </CardHeader>
               <CardContent className="p-0">
-                <ScrollArea className="h-[400px]">
-                  <nav className="space-y-1 p-4">
+                <ScrollArea className="h-[300px] sm:h-[400px]">
+                  <nav className="space-y-1 p-2 sm:p-4">
                     {sections.map((section) => {
                       const Icon = section.icon;
                       return (
                         <button
                           key={section.id}
                           onClick={() => scrollToSection(section.id)}
-                          className={`w-full flex items-center gap-3 px-3 py-2 text-sm rounded-md transition-colors text-left ${
+                          className={`w-full flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm rounded-md transition-colors text-left ${
                             activeSection === section.id
                               ? "bg-primary text-primary-foreground"
                               : "hover:bg-muted"
@@ -128,7 +138,7 @@ const Privacy = () => {
           </div>
 
           {/* Main Content */}
-          <div className="lg:col-span-3 space-y-8">
+          <div className="lg:col-span-3 space-y-4 sm:space-y-8">
             {/* Overview Section */}
             <motion.section
               id="overview"
@@ -138,8 +148,8 @@ const Privacy = () => {
             >
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Eye className="h-5 w-5" />
+                  <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+                    <Eye className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                     Privacy Policy Overview
                   </CardTitle>
                   <CardDescription>
@@ -460,7 +470,7 @@ const Privacy = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.7 }}
             >
-              <Card>
+              <Card className="sticky top-20 sm:top-24">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Mail className="h-5 w-5" />
@@ -508,16 +518,16 @@ const Privacy = () => {
       </div>
 
       {/* Footer */}
-      <footer className="border-t bg-muted/50 py-8 mt-16">
-        <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <div className="flex items-center gap-4">
+      <footer className="border-t bg-muted/50 py-4 sm:py-8 mt-8 sm:mt-16">
+        <div className="container mx-auto px-2 sm:px-4">
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-2 sm:gap-4">
+            <div className="flex items-center gap-2 sm:gap-4">
               <TamuLogo size="sm" />
               <div className="text-sm text-muted-foreground">
                 <p>© 2024 TAMU. All rights reserved.</p>
               </div>
             </div>
-            <div className="flex items-center gap-4 text-sm">
+            <div className="flex items-center gap-2 sm:gap-4 text-xs sm:text-sm">
               <Button variant="link" size="sm" asChild>
                 <a href="/terms">Terms of Service</a>
               </Button>
