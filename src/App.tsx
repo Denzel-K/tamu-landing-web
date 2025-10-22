@@ -13,6 +13,8 @@ import ReservationNew from "./pages/ReservationNew.tsx";
 import ReservationConfirmation from "./pages/ReservationConfirmation.tsx";
 import Enter from "./pages/Enter.tsx";
 import RRedirect from "./pages/R.tsx";
+import Privacy from "./pages/Privacy.tsx";
+import Terms from "./pages/Terms.tsx";
 import { CartProvider } from "@/lib/cart/CartContext";
 
 const queryClient = new QueryClient();
@@ -34,6 +36,8 @@ const App = () => (
           <Route path="/reservations/confirmation/:id" element={<ReservationConfirmation />} />
           <Route path="/enter" element={<Enter />} />
           <Route path="/r/:id" element={<RRedirect />} />
+          <Route path="/privacy" element={<Privacy />} />
+          <Route path="/terms" element={<Terms />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

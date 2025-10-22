@@ -157,12 +157,12 @@ const Index = () => {
                         </a>
                       </li>
                       <li>
-                        <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
+                        <a href="/privacy" className="text-muted-foreground hover:text-primary transition-colors">
                           Privacy Policy
                         </a>
                       </li>
                       <li>
-                        <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
+                        <a href="/terms" className="text-muted-foreground hover:text-primary transition-colors">
                           Terms of Service
                         </a>
                       </li>
@@ -174,10 +174,10 @@ const Index = () => {
                 <div className="pt-8 border-t border-border/50 flex flex-col md:flex-row justify-between items-center gap-4">
                   <p className="text-sm text-muted-foreground">© 2025 TAMU Platform. All rights reserved.</p>
                   <div className="flex gap-6 text-sm text-muted-foreground">
-                    <a href="#" className="hover:text-primary transition-colors">
+                    <a href="/privacy" className="hover:text-primary transition-colors">
                       Privacy
                     </a>
-                    <a href="#" className="hover:text-primary transition-colors">
+                    <a href="/terms" className="hover:text-primary transition-colors">
                       Terms
                     </a>
                     <a href="#" className="hover:text-primary transition-colors">
