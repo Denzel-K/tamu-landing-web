@@ -525,7 +525,7 @@ const Privacy = () => {
                 <a href="/privacy">Privacy Policy</a>
               </Button>
               <Button variant="link" size="sm" asChild>
-                <a href="mailto:legal@tamu.app" className="flex items-center gap-1">
+                <a href="mailto:officialtamufoods@gmail.com" className="flex items-center gap-1">
                   Legal <ExternalLink className="h-3 w-3" />
                 </a>
               </Button>
