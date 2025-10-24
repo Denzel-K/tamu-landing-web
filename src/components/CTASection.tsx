@@ -88,7 +88,7 @@ export const CTASection = ({ selectedView }: CTASectionProps) => {
 
               <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
                 <motion.a
-                  href="https://tamu-business.vercel.app"
+                  href="https://tamu-business.onrender.com"
                   target="_blank"
                   rel="noopener noreferrer"
                   whileHover={{ scale: 1.05 }}
@@ -206,7 +206,7 @@ export const CTASection = ({ selectedView }: CTASectionProps) => {
 
               <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
                 <motion.a
-                  href="https://tamu-business.vercel.app"
+                  href="https://tamu-business.onrender.com"
                   target="_blank"
                   rel="noopener noreferrer"
                   whileHover={{ scale: 1.05 }}

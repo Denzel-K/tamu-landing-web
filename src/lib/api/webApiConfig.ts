@@ -27,7 +27,7 @@ function isDevHost() {
 }
 
 function resolveBaseUrl() {
-  const defaultBaseProd = 'https://tamu-business.vercel.app';
+  const defaultBaseProd = 'https://tamu-business.onrender.com';
   // Prefer Vite's DEV flag when present; fallback to MODE === 'development' and hostname check
   const envAny = (import.meta as unknown as { env?: Record<string, unknown> }).env || {};
   const viteDev = typeof envAny.DEV === 'boolean'
