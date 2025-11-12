@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { ReactNode, useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import { Check, Loader2, Sparkles, ShieldCheck } from "lucide-react";
@@ -17,7 +17,6 @@ import {
   submitFeedback,
   SubmitFeedbackPayload,
   FeedbackSessionResponse,
-  FeedbackSession,
   FeedbackLinks,
   SubmitFeedbackResponse,
 } from "@/lib/feedback/service";
@@ -84,11 +83,49 @@ const ratingFieldConfig: { key: RatingField; label: string }[] = [
   { key: "reliabilityScore", label: "Reliability" },
 ];
 
+type StepCardProps = {
+  step: number;
+  title: string;
+  description: string;
+  actions?: ReactNode;
+  children: ReactNode;
+};
+
+const StepCard = ({ step, title, description, actions, children }: StepCardProps) => (
+  <section className="rounded-3xl border border-border/60 bg-background/80 p-6 md:p-8 shadow-sm space-y-6 transition hover:border-primary/50">
+    <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+      <div className="space-y-2">
+        <div className="flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.3em] text-muted-foreground">
+          <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-base tracking-normal text-primary">
+            {step}
+          </span>
+          Step {step}
+        </div>
+        <div>
+          <h2 className="text-xl font-semibold">{title}</h2>
+          <p className="text-sm text-muted-foreground">{description}</p>
+        </div>
+      </div>
+      {actions && <div className="flex-none text-right">{actions}</div>}
+    </div>
+    {children}
+  </section>
+);
+
+type StepDefinition = {
+  title: string;
+  description: string;
+  shortLabel: string;
+  actions?: ReactNode;
+  content: ReactNode;
+};
+
 const FeedbackPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [formState, setFormState] = useState(defaultFormState);
   const [successLinks, setSuccessLinks] = useState<FeedbackLinks | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [currentStep, setCurrentStep] = useState(0);
   const { toast } = useToast();
 
   const queryToken = searchParams.get("token");
@@ -272,6 +309,283 @@ const FeedbackPage = () => {
       );
   };
 
+  const steps: StepDefinition[] = [
+    {
+      title: "Who's sharing today?",
+      description: isPrefilled
+        ? "Linked to your tester invite. Make sure the basics look correct before continuing."
+        : "Use the same name and email from the alpha list so we can match your token.",
+      shortLabel: "Identity",
+      actions:
+        isPrefilled && (
+          <Button type="button" variant="ghost" size="sm" onClick={clearToken}>
+            Switch tester link
+          </Button>
+        ),
+      content: (
+        <div className="space-y-6">
+          {testerDetails?.feedbackSubmittedAt && (
+            <p className="text-xs text-emerald-500">
+              Last shared on {new Date(testerDetails.feedbackSubmittedAt).toLocaleString()}
+            </p>
+          )}
+          {sessionQuery.isError && (
+            <div className="rounded-2xl border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
+              {sessionError?.message || "Unable to verify this tester link. Clear it and re-enter your invite email."}
+            </div>
+          )}
+          <div className="grid gap-4 md:grid-cols-2">
+            <div>
+              <Label htmlFor="name">Name</Label>
+              <Input
+                id="name"
+                value={formState.name}
+                onChange={(event) => handleInputChange("name", event.target.value)}
+                required
+                placeholder="Ada Tester"
+              />
+            </div>
+            <div>
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={formState.email}
+                onChange={(event) => handleInputChange("email", event.target.value)}
+                required={!isPrefilled}
+                disabled={isPrefilled}
+                placeholder="tester@email.com"
+              />
+            </div>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="rounded-3xl border border-border/60 bg-card/40 p-5">
+              <p className="text-sm font-semibold text-primary mb-2 uppercase">What to focus on</p>
+              <ul className="space-y-3 text-sm text-muted-foreground">
+                {heroFeatures.map((item) => (
+                  <li key={item.title} className="rounded-2xl border border-border/50 p-3">
+                    <p className="font-medium text-foreground">{item.title}</p>
+                    <p>{item.description}</p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="rounded-3xl border border-dashed border-primary/50 bg-primary/5 p-5 space-y-3">
+              <p className="text-sm font-semibold text-primary uppercase">Need your token?</p>
+              <p className="text-sm text-muted-foreground">
+                Each tester has a unique link. Lost it? Request a fresh invite using the same email, or ping the admin.
+              </p>
+              <Button variant="outline" asChild>
+                <a href="/">Request another invite</a>
+              </Button>
+            </div>
+          </div>
+        </div>
+      ),
+    },
+    {
+      title: "Where did you spend time?",
+      description: "Tag every surface you actually touched so we can weigh your notes correctly.",
+      shortLabel: "Surfaces",
+      actions:
+        sessionLinks?.feedbackForm && (
+          <Button type="button" variant="link" className="text-xs" onClick={() => copyPersonalLink(sessionLinks?.feedbackForm)}>
+            Copy my edit link
+          </Button>
+        ),
+      content: (
+        <div className="grid gap-4 sm:grid-cols-2">
+          {featureOptions.map((feature) => {
+            const checked = formState.featuresTried.includes(feature.id);
+            return (
+              <button
+                type="button"
+                key={feature.id}
+                onClick={() => handleFeatureToggle(feature.id)}
+                className={cn(
+                  "rounded-2xl border p-4 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60",
+                  checked
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-border text-foreground hover:border-primary/60 hover:bg-primary/5"
+                )}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <p className="font-medium">{feature.title}</p>
+                  {checked && <Check className="h-4 w-4" />}
+                </div>
+                <p className="text-sm text-muted-foreground mt-1">{feature.description}</p>
+              </button>
+            );
+          })}
+        </div>
+      ),
+    },
+    {
+      title: "What stood out?",
+      description: "Quick notes help us understand why each moment mattered.",
+      shortLabel: "Highlights",
+      content: (
+        <div className="grid gap-6 md:grid-cols-3">
+          <div className="space-y-2">
+            <Label htmlFor="highlight">What delighted you?</Label>
+            <Textarea
+              id="highlight"
+              value={formState.highlight}
+              onChange={(event) => handleInputChange("highlight", event.target.value)}
+              placeholder="The rewards wallet felt instantly clear..."
+              className="min-h-[120px]"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="blockers">What slowed you down?</Label>
+            <Textarea
+              id="blockers"
+              value={formState.blockers}
+              onChange={(event) => handleInputChange("blockers", event.target.value)}
+              placeholder="Map filters reset when I changed cuisines..."
+              className="min-h-[120px]"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="wishlist">Wishlist / experiments</Label>
+            <Textarea
+              id="wishlist"
+              value={formState.wishlist}
+              onChange={(event) => handleInputChange("wishlist", event.target.value)}
+              placeholder="Let me save favorite food journeys..."
+              className="min-h-[120px]"
+            />
+          </div>
+        </div>
+      ),
+    },
+    {
+      title: "How did it feel overall?",
+      description: "Score each moment from 1 (major gaps) to 5 (polished) so we know where to focus.",
+      shortLabel: "Feels",
+      content: (
+        <div className="grid gap-4 md:grid-cols-3">
+          {ratingFieldConfig.map((item) => (
+            <div key={item.key} className="rounded-2xl border border-border/60 p-4">
+              <p className="text-sm font-medium mb-2">{item.label}</p>
+              <div className="flex gap-2">
+                {ratingOptions.map((value) => (
+                  <button
+                    type="button"
+                    key={value}
+                    onClick={() => handleRatingChange(item.key, value)}
+                    className={cn(
+                      "flex-1 rounded-lg border px-0 py-2 text-sm font-semibold transition",
+                      formState[item.key] === value
+                        ? "border-primary bg-primary/15 text-primary shadow-sm"
+                        : "border-border text-muted-foreground hover:border-primary/60"
+                    )}
+                  >
+                    {value}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      ),
+    },
+    {
+      title: "Visibility & reach-outs",
+      description: "Choose how other testers see your name and whether the team can follow up.",
+      shortLabel: "Visibility",
+      content: (
+        <div className="space-y-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-medium">How should we display you on the tester wall?</p>
+              <p className="text-xs text-muted-foreground">
+                Admins still see your real profile; this only affects the public tester wall.
+              </p>
+            </div>
+            <Badge variant="outline" className="whitespace-nowrap">
+              {formState.visibility === "anonymous" ? "Visible as anonymous" : "Visible with name"}
+            </Badge>
+          </div>
+          <RadioGroup
+            value={formState.visibility}
+            onValueChange={(value) => handleInputChange("visibility", value as "public" | "anonymous")}
+            className="grid gap-4 sm:grid-cols-2"
+          >
+            <label
+              htmlFor="visibility-public"
+              className={cn(
+                "rounded-2xl border p-4",
+                formState.visibility === "public" ? "border-primary bg-primary/10" : "border-border"
+              )}
+            >
+              <div className="flex items-start space-x-3">
+                <RadioGroupItem value="public" id="visibility-public" className="sr-only" aria-label="Public" />
+                <div>
+                  <p className="font-medium">Show my name</p>
+                  <p className="text-xs text-muted-foreground">Great when you want to be credited in updates.</p>
+                </div>
+              </div>
+            </label>
+            <label
+              htmlFor="visibility-anonymous"
+              className={cn(
+                "rounded-2xl border p-4",
+                formState.visibility === "anonymous" ? "border-primary bg-primary/10" : "border-border"
+              )}
+            >
+              <div className="flex items-start space-x-3">
+                <RadioGroupItem value="anonymous" id="visibility-anonymous" className="sr-only" aria-label="Anonymous" />
+                <div>
+                  <p className="font-medium">Stay anonymous</p>
+                  <p className="text-xs text-muted-foreground">Your insights count without showing your name.</p>
+                </div>
+              </div>
+            </label>
+          </RadioGroup>
+
+          <div className="flex items-center justify-between gap-4 rounded-2xl border border-border/60 p-4">
+            <div>
+              <p className="text-sm font-medium">Can our product team reach out?</p>
+              <p className="text-xs text-muted-foreground">
+                Only for clarification or to invite you into a deeper research call.
+              </p>
+            </div>
+            <Switch checked={formState.allowContact} onCheckedChange={(checked) => handleInputChange("allowContact", checked)} />
+          </div>
+        </div>
+      ),
+    },
+  ];
+
+  const totalSteps = steps.length;
+  const activeStep = steps[currentStep];
+  const progressPercent = ((currentStep + 1) / totalSteps) * 100;
+
+  const scrollToStepTop = () => {
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+
+  const goToStep = (index: number) => {
+    const nextIndex = Math.max(0, Math.min(index, totalSteps - 1));
+    setCurrentStep(nextIndex);
+    scrollToStepTop();
+  };
+
+  const nextStep = () => {
+    if (currentStep < totalSteps - 1) {
+      goToStep(currentStep + 1);
+    }
+  };
+
+  const prevStep = () => {
+    if (currentStep > 0) {
+      goToStep(currentStep - 1);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-background to-primary/5">
       <div className="container mx-auto px-4 py-12 max-w-6xl">
@@ -284,272 +598,97 @@ const FeedbackPage = () => {
           </p>
         </div>
 
-        <div className="grid gap-8 lg:grid-cols-[2fr,1fr]">
-          <form
-            onSubmit={handleSubmit}
-            className="rounded-3xl border border-border/60 bg-card/70 backdrop-blur-md p-6 space-y-8 shadow-lg"
-          >
-            <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="max-w-3xl mx-auto space-y-8">
+          <div className="rounded-3xl border border-border/60 bg-card/70 p-6 md:p-8 space-y-4 shadow-lg">
+            <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">
-                  {isPrefilled
-                    ? "Connected to your tester invite. Edit anything you'd like."
-                    : "Enter the same name & email you used to join the alpha list."}
+                <p className="text-xs uppercase tracking-[0.4em] text-muted-foreground">Guided feedback</p>
+                <p className="text-lg font-semibold">
+                  Step {currentStep + 1} of {totalSteps}
                 </p>
-                {testerDetails?.feedbackSubmittedAt && (
-                  <p className="text-xs text-emerald-600 mt-1">
-                    Feedback last updated {new Date(testerDetails.feedbackSubmittedAt).toLocaleString()}
-                  </p>
-                )}
               </div>
-              {isPrefilled && (
-                <Button type="button" variant="ghost" size="sm" onClick={clearToken}>
-                  Switch tester link
+              <span className="text-sm font-semibold text-primary">{Math.round(progressPercent)}% complete</span>
+            </div>
+            <div className="h-2 w-full overflow-hidden rounded-full bg-border/60">
+              <div className="h-full rounded-full bg-primary transition-all duration-300" style={{ width: `${progressPercent}%` }} />
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {steps.map((step, index) => {
+                const isActive = index === currentStep;
+                const isComplete = index < currentStep;
+                return (
+                  <button
+                    key={step.title}
+                    type="button"
+                    onClick={() => goToStep(index)}
+                    className={cn(
+                      "flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold transition",
+                      isActive
+                        ? "border-primary bg-primary/10 text-primary"
+                        : isComplete
+                          ? "border-primary/50 text-foreground"
+                          : "border-border text-muted-foreground hover:text-primary"
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "inline-flex h-6 w-6 items-center justify-center rounded-full border text-[11px]",
+                        isActive
+                          ? "border-primary bg-primary/20 text-primary"
+                          : isComplete
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border text-muted-foreground"
+                      )}
+                    >
+                      {index + 1}
+                    </span>
+                    {step.shortLabel}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-6 md:space-y-8">
+            <StepCard
+              step={currentStep + 1}
+              title={activeStep.title}
+              description={activeStep.description}
+              actions={activeStep.actions}
+            >
+              {activeStep.content}
+            </StepCard>
+
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              {currentStep > 0 ? (
+                <Button type="button" variant="outline" onClick={prevStep} className="w-full md:w-auto">
+                  Back
+                </Button>
+              ) : (
+                <span className="text-sm text-muted-foreground">Step 1 of {totalSteps}</span>
+              )}
+
+              {currentStep < totalSteps - 1 ? (
+                <Button type="button" className="w-full md:w-auto" onClick={nextStep}>
+                  Next: {steps[currentStep + 1].shortLabel}
+                </Button>
+              ) : (
+                <Button type="submit" size="lg" className="w-full md:w-auto" disabled={submitMutation.isPending}>
+                  {submitMutation.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Saving feedback
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="mr-2 h-4 w-4" />
+                      Send insights to TAMU
+                    </>
+                  )}
                 </Button>
               )}
             </div>
-
-            {sessionQuery.isError && (
-              <div className="rounded-2xl border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
-                {sessionError?.message || "Unable to verify this tester link. You can clear it and enter your email."}
-              </div>
-            )}
-
-            <div className="grid gap-4 md:grid-cols-2">
-              <div>
-                <Label htmlFor="name">Name</Label>
-                <Input
-                  id="name"
-                  value={formState.name}
-                  onChange={(event) => handleInputChange("name", event.target.value)}
-                  required
-                  placeholder="Ada Tester"
-                />
-              </div>
-              <div>
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={formState.email}
-                  onChange={(event) => handleInputChange("email", event.target.value)}
-                  required={!isPrefilled}
-                  disabled={isPrefilled}
-                  placeholder="tester@email.com"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <p className="text-sm font-medium mb-1">How did it feel?</p>
-                <p className="text-xs text-muted-foreground">5 = polished, 1 = major gaps</p>
-              </div>
-              <div className="grid gap-4 md:grid-cols-3">
-                {ratingFieldConfig.map((item) => (
-                  <div key={item.key} className="rounded-2xl border border-border/60 p-4">
-                    <p className="text-sm font-medium mb-2">{item.label}</p>
-                    <div className="flex gap-2">
-                      {ratingOptions.map((value) => (
-                        <button
-                          type="button"
-                          key={value}
-                          onClick={() => handleRatingChange(item.key, value)}
-                          className={cn(
-                            "flex-1 rounded-lg border px-0 py-2 text-sm font-semibold transition",
-                            formState[item.key] === value
-                              ? "border-primary bg-primary/10 text-primary"
-                              : "border-border text-muted-foreground hover:border-primary/60"
-                          )}
-                        >
-                          {value}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-sm font-medium">Which surfaces did you really explore?</p>
-                  <p className="text-xs text-muted-foreground">Helps us balance discovery vs. ordering vs. rewards.</p>
-                </div>
-                {sessionLinks?.feedbackForm && (
-                  <Button
-                    type="button"
-                    variant="link"
-                    className="text-xs"
-                    onClick={() => copyPersonalLink(sessionLinks?.feedbackForm)}
-                  >
-                    Copy my edit link
-                  </Button>
-                )}
-              </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                {featureOptions.map((feature) => {
-                  const checked = formState.featuresTried.includes(feature.id);
-                  return (
-                    <button
-                      type="button"
-                      key={feature.id}
-                      onClick={() => handleFeatureToggle(feature.id)}
-                      className={cn(
-                        "rounded-2xl border p-4 text-left transition",
-                        checked
-                          ? "border-primary bg-primary/5"
-                          : "border-border hover:border-primary/50 hover:bg-primary/5"
-                      )}
-                    >
-                      <div className="flex items-center justify-between">
-                        <p className="font-medium">{feature.title}</p>
-                        {checked && <Check className="h-4 w-4 text-primary" />}
-                      </div>
-                      <p className="text-sm text-muted-foreground mt-1">{feature.description}</p>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-3">
-              <div className="md:col-span-1">
-                <Label htmlFor="highlight">What delighted you?</Label>
-                <Textarea
-                  id="highlight"
-                  value={formState.highlight}
-                  onChange={(event) => handleInputChange("highlight", event.target.value)}
-                  placeholder="The rewards wallet felt instantly clear..."
-                  className="min-h-[100px]"
-                />
-              </div>
-              <div className="md:col-span-1">
-                <Label htmlFor="blockers">What slowed you down?</Label>
-                <Textarea
-                  id="blockers"
-                  value={formState.blockers}
-                  onChange={(event) => handleInputChange("blockers", event.target.value)}
-                  placeholder="Map filters reset when I changed cuisines..."
-                  className="min-h-[100px]"
-                />
-              </div>
-              <div className="md:col-span-1">
-                <Label htmlFor="wishlist">Wishlist / experiments</Label>
-                <Textarea
-                  id="wishlist"
-                  value={formState.wishlist}
-                  onChange={(event) => handleInputChange("wishlist", event.target.value)}
-                  placeholder="Let me save favorite food journeys..."
-                  className="min-h-[100px]"
-                />
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-border/60 p-4 space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <div>
-                  <p className="text-sm font-medium">How should we display your name on the tester wall?</p>
-                  <p className="text-xs text-muted-foreground">
-                    Admins always see your real details, but other testers only see what you pick here.
-                  </p>
-                </div>
-                <Badge variant="outline">
-                  {formState.visibility === "anonymous" ? "Visible as anonymous" : "Visible with name"}
-                </Badge>
-              </div>
-              <RadioGroup
-                value={formState.visibility}
-                onValueChange={(value) => handleInputChange("visibility", value as "public" | "anonymous")}
-                className="grid gap-4 sm:grid-cols-2"
-              >
-                <label
-                  htmlFor="visibility-public"
-                  className={cn(
-                    "rounded-2xl border p-4",
-                    formState.visibility === "public" ? "border-primary bg-primary/5" : "border-border"
-                  )}
-                >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="public" id="visibility-public" className="sr-only" aria-label="Public" />
-                    <div>
-                      <p className="font-medium">Show my name</p>
-                      <p className="text-xs text-muted-foreground">Best if you want to be credited in updates.</p>
-                    </div>
-                  </div>
-                </label>
-                <label
-                  htmlFor="visibility-anonymous"
-                  className={cn(
-                    "rounded-2xl border p-4",
-                    formState.visibility === "anonymous" ? "border-primary bg-primary/5" : "border-border"
-                  )}
-                >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem
-                      value="anonymous"
-                      id="visibility-anonymous"
-                      className="sr-only"
-                      aria-label="Anonymous"
-                    />
-                    <div>
-                      <p className="font-medium">Stay anonymous</p>
-                      <p className="text-xs text-muted-foreground">Your insights still get counted, without your name.</p>
-                    </div>
-                  </div>
-                </label>
-              </RadioGroup>
-
-              <div className="flex items-center justify-between gap-4 rounded-2xl border border-border/60 p-4">
-                <div>
-                  <p className="text-sm font-medium">Can our product team reach out?</p>
-                  <p className="text-xs text-muted-foreground">
-                    Only for clarification or to invite you to a deeper research call.
-                  </p>
-                </div>
-                <Switch checked={formState.allowContact} onCheckedChange={(checked) => handleInputChange("allowContact", checked)} />
-              </div>
-            </div>
-
-            <Button type="submit" size="lg" className="w-full" disabled={submitMutation.isPending}>
-              {submitMutation.isPending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Saving feedback
-                </>
-              ) : (
-                <>
-                  <Sparkles className="mr-2 h-4 w-4" />
-                  Send insights to TAMU
-                </>
-              )}
-            </Button>
           </form>
-
-          <aside className="space-y-6">
-            <div className="rounded-3xl border border-border/60 bg-background/70 p-6 shadow-lg">
-              <p className="text-sm font-semibold text-primary mb-2 uppercase">What to focus on</p>
-              <ul className="space-y-4 text-sm text-muted-foreground">
-                {heroFeatures.map((item) => (
-                  <li key={item.title} className="rounded-2xl border border-border/50 p-3">
-                    <p className="font-medium text-foreground">{item.title}</p>
-                    <p>{item.description}</p>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div className="rounded-3xl border border-dashed border-primary/50 bg-primary/5 p-6 space-y-4">
-              <p className="text-sm font-semibold text-primary uppercase">Need your token?</p>
-              <p className="text-sm text-muted-foreground">
-                Each tester has a unique link. Lost it? Use the button below to request it again from the admin or rejoin
-                using the same email.
-              </p>
-              <Button variant="outline" asChild>
-                <a href="/">Request another invite</a>
-              </Button>
-            </div>
-          </aside>
         </div>
       </div>
 
