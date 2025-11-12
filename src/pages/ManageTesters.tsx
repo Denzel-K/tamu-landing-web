@@ -12,6 +12,8 @@ import {
   EyeOff,
   Copy,
   ClipboardList,
+  MessageSquare,
+  Link2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -21,7 +23,14 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
-import { AlphaTesterStatus, fetchAlphaTesters, sendAlphaTesterLink, updateAlphaTesterStatus } from "@/lib/alpha-testers/service";
+import {
+  AlphaTester,
+  AlphaTesterStatus,
+  fetchAlphaTesters,
+  sendAlphaTesterLink,
+  updateAlphaTesterStatus,
+} from "@/lib/alpha-testers/service";
+import { fetchTesterFeedback, FeedbackEntry } from "@/lib/feedback/service";
 
 const ADMIN_PASS_HINT = (import.meta.env.VITE_ADMIN_PASS as string | undefined)?.trim();
 
@@ -31,6 +40,16 @@ const statusStyles: Record<AlphaTesterStatus, string> = {
   denied: "bg-rose-500/15 text-rose-600 border border-rose-500/30",
 };
 
+const featureLabels: Record<string, string> = {
+  discover: "Discover",
+  order: "Order & Checkout",
+  reservations: "Reservations",
+  experiences: "Experiences",
+  rewards: "Rewards",
+  reviews: "Reviews & Social Proof",
+  ui: "Interface polish",
+};
+
 const ManageTesters = () => {
   const [adminSecret, setAdminSecret] = useState<string | null>(null);
   const [passwordInput, setPasswordInput] = useState("");
@@ -38,6 +57,8 @@ const ManageTesters = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [statusActionId, setStatusActionId] = useState<string | null>(null);
   const [linkActionId, setLinkActionId] = useState<string | null>(null);
+  const [feedbackModalTester, setFeedbackModalTester] = useState<AlphaTester | null>(null);
+  const [feedbackDetails, setFeedbackDetails] = useState<FeedbackEntry | null>(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -100,7 +121,7 @@ const ManageTesters = () => {
     onSuccess: (response) => {
       toast({
         title: "Invite sent",
-        description: response.message ?? "Alpha download link emailed.",
+        description: response.message ?? "Alpha download + feedback link emailed.",
       });
       queryClient.invalidateQueries({ queryKey: ["alpha-testers"] });
     },
@@ -114,7 +135,24 @@ const ManageTesters = () => {
     onSettled: () => setLinkActionId(null),
   });
 
-  const testers = testersQuery.data ?? [];
+  const testerFeedbackMutation = useMutation({
+    mutationFn: async (testerId: string) => {
+      if (!adminSecret) throw new Error("Missing admin credentials");
+      return fetchTesterFeedback(testerId, adminSecret);
+    },
+    onSuccess: (response) => {
+      setFeedbackDetails(response.feedback);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Unable to load feedback",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const testers = useMemo(() => testersQuery.data ?? [], [testersQuery.data]);
   const isLoading = testersQuery.isLoading || testersQuery.isFetching;
   const [bulkLoading, setBulkLoading] = useState(false);
 
@@ -157,6 +195,45 @@ const ManageTesters = () => {
     () => [...testers].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
     [testers]
   );
+
+  const handleCopyFeedbackLink = async (tester: AlphaTester) => {
+    if (!tester.feedbackToken) {
+      toast({
+        title: "Feedback link unavailable",
+        description: "Generate a tester link first.",
+        variant: "destructive",
+      });
+      return;
+    }
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    const url = `${origin}/feedback?token=${tester.feedbackToken}`;
+    try {
+      if (!navigator?.clipboard) throw new Error("Clipboard not available");
+      await navigator.clipboard.writeText(url);
+      toast({
+        title: "Feedback form link copied",
+        description: url,
+      });
+    } catch (error) {
+      toast({
+        title: "Clipboard error",
+        description: error instanceof Error ? error.message : "Unable to copy link.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const openFeedbackModal = (tester: AlphaTester) => {
+    setFeedbackModalTester(tester);
+    setFeedbackDetails(null);
+    testerFeedbackMutation.mutate(tester._id);
+  };
+
+  const closeFeedbackModal = () => {
+    setFeedbackModalTester(null);
+    setFeedbackDetails(null);
+    testerFeedbackMutation.reset();
+  };
 
   const requireAuth = !adminSecret;
 
@@ -263,6 +340,12 @@ const ManageTesters = () => {
                 <Lock className="mr-2 h-4 w-4" />
                 Lock page
               </Button>
+              <Button size="sm" variant="outline" asChild>
+                <a href="/feedback/all" target="_blank" rel="noreferrer">
+                  <MessageSquare className="mr-2 h-4 w-4" />
+                  All feedback wall
+                </a>
+              </Button>
             </div>
           )}
         </div>
@@ -278,13 +361,14 @@ const ManageTesters = () => {
                     <TableHead>Status</TableHead>
                     <TableHead>Requested</TableHead>
                     <TableHead>Link sent</TableHead>
-                    <TableHead className="w-[220px]">Actions</TableHead>
+                    <TableHead>Feedback</TableHead>
+                    <TableHead className="w-[260px]">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {isLoading && (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-10 text-muted-foreground">
+                      <TableCell colSpan={7} className="text-center py-10 text-muted-foreground">
                         <Loader2 className="mr-2 inline h-4 w-4 animate-spin" />
                         Loading testers...
                       </TableCell>
@@ -293,7 +377,7 @@ const ManageTesters = () => {
 
                   {!isLoading && sortedTesters.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-10 text-muted-foreground">
+                      <TableCell colSpan={7} className="text-center py-10 text-muted-foreground">
                         No testers yet. Once users join from the landing page, they will appear here.
                       </TableCell>
                     </TableRow>
@@ -332,6 +416,15 @@ const ManageTesters = () => {
                         {tester.linkSentAt
                           ? formatDistanceToNow(new Date(tester.linkSentAt), { addSuffix: true })
                           : "Not yet"}
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        {tester.feedbackSubmittedAt ? (
+                          <span className="text-emerald-600">
+                            Submitted {formatDistanceToNow(new Date(tester.feedbackSubmittedAt), { addSuffix: true })}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">Not received</span>
+                        )}
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-2">
@@ -383,6 +476,26 @@ const ManageTesters = () => {
                             })()
                           )}
                         </div>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleCopyFeedbackLink(tester)}
+                            disabled={!tester.feedbackToken}
+                          >
+                            <Link2 className="mr-2 h-4 w-4" />
+                            Copy feedback form
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => openFeedbackModal(tester)}
+                            disabled={!tester.feedbackSubmittedAt}
+                          >
+                            <MessageSquare className="mr-2 h-4 w-4" />
+                            View feedback
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -397,6 +510,78 @@ const ManageTesters = () => {
           )}
         </div>
       </div>
+
+      <Dialog open={Boolean(feedbackModalTester)} onOpenChange={(open) => (!open ? closeFeedbackModal() : null)}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Tester feedback</DialogTitle>
+            <DialogDescription>
+              {feedbackModalTester
+                ? `${feedbackModalTester.name} • ${feedbackModalTester.email}`
+                : "Loading feedback"}
+            </DialogDescription>
+          </DialogHeader>
+          {testerFeedbackMutation.isPending ? (
+            <div className="flex items-center justify-center py-10 text-muted-foreground">
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Fetching feedback…
+            </div>
+          ) : feedbackDetails ? (
+            <div className="space-y-4">
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div className="rounded-xl border border-border/60 p-4">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Overall experience</p>
+                  <p className="text-3xl font-semibold">{feedbackDetails.overallExperience}/5</p>
+                </div>
+                <div className="rounded-xl border border-border/60 p-4">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Journey clarity</p>
+                  <p className="text-3xl font-semibold">{feedbackDetails.journeyClarity}/5</p>
+                </div>
+                <div className="rounded-xl border border-border/60 p-4">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Reliability</p>
+                  <p className="text-3xl font-semibold">{feedbackDetails.reliabilityScore}/5</p>
+                </div>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-2">Features explored</p>
+                <div className="flex flex-wrap gap-2">
+                  {feedbackDetails.featuresTried?.length ? (
+                    feedbackDetails.featuresTried.map((feature) => (
+                      <Badge key={feature} variant="secondary">
+                        {featureLabels[feature] || feature}
+                      </Badge>
+                    ))
+                  ) : (
+                    <span className="text-sm text-muted-foreground">Not specified</span>
+                  )}
+                </div>
+              </div>
+              <div className="grid gap-4 md:grid-cols-3">
+                <div className="rounded-xl border border-border/60 p-4">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Highlight</p>
+                  <p className="text-sm whitespace-pre-wrap">{feedbackDetails.highlight || "—"}</p>
+                </div>
+                <div className="rounded-xl border border-border/60 p-4">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Blockers</p>
+                  <p className="text-sm whitespace-pre-wrap">{feedbackDetails.blockers || "—"}</p>
+                </div>
+                <div className="rounded-xl border border-border/60 p-4">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Wishlist</p>
+                  <p className="text-sm whitespace-pre-wrap">{feedbackDetails.wishlist || "—"}</p>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+                <span>Visibility: {feedbackDetails.visibility === "anonymous" ? "Anonymous" : "Public"}</span>
+                <span>Willing to be contacted: {feedbackDetails.allowContact ? "Yes" : "No"}</span>
+                <span>
+                  Updated {formatDistanceToNow(new Date(feedbackDetails.updatedAt), { addSuffix: true })}
+                </span>
+              </div>
+            </div>
+          ) : (
+            <div className="py-6 text-sm text-muted-foreground">No feedback on record.</div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={requireAuth} onOpenChange={() => {}}>
         <DialogContent className="max-w-sm">

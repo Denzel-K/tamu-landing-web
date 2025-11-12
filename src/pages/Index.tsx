@@ -163,6 +163,11 @@ const Index = () => {
                     <h3 className="font-bold text-lg mb-4 text-foreground">Support</h3>
                     <ul className="space-y-3">
                       <li>
+                        <a href="/feedback" className="text-muted-foreground hover:text-primary transition-colors">
+                          Alpha Feedback
+                        </a>
+                      </li>
+                      <li>
                         <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
                           Help Center
                         </a>

@@ -10,6 +10,8 @@ export interface AlphaTester {
   notes?: string;
   joinEmailSentAt?: string;
   linkSentAt?: string;
+  feedbackToken?: string;
+  feedbackSubmittedAt?: string;
   createdAt: string;
   updatedAt: string;
 }
