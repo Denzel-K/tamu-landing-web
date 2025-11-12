@@ -48,7 +48,7 @@ function computeBaseUrl() {
   if (prod) return prod;
   const n = normalizeApi(NGROK);
   if (n) return n;
-  return 'https://your-production-api.com/api';
+  return 'https://tamu-mobile-backend.onrender.com/api';
 }
 
 function buildFallbackUrls(): string[] {

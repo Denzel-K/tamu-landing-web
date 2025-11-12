@@ -1,8 +1,9 @@
 import { motion } from "framer-motion";
 import { useCallback, useState } from "react";
-import { ExternalLink, Apple, Smartphone, Download, QrCode } from "lucide-react";
+import { ExternalLink, Apple, Smartphone, Download, QrCode, FlaskConical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ApkDownloadModal } from "@/components/ApkDownloadModal";
+import { AlphaTesterModal } from "@/components/AlphaTesterModal";
 import appConfig from "@/config/app-config.json";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import QRScanner from "@/components/QRScanner";
@@ -14,6 +15,7 @@ interface CTASectionProps {
 
 export const CTASection = ({ selectedView }: CTASectionProps) => {
   const [isApkModalOpen, setIsApkModalOpen] = useState(false);
+  const [isAlphaModalOpen, setIsAlphaModalOpen] = useState(false);
   const [isTryHereOpen, setIsTryHereOpen] = useState(false);
   const [showScanner, setShowScanner] = useState(true);
   const navigate = useNavigate();
@@ -150,21 +152,39 @@ export const CTASection = ({ selectedView }: CTASectionProps) => {
                     </motion.a>
                   </>
                 ) : (
-                  <motion.button
-                    onClick={() => setIsApkModalOpen(true)}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="inline-block"
-                  >
-                    <Button
-                      size="lg"
-                      className="text-sm sm:text-lg px-8 py-6 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-xl shadow-lg shadow-primary/30"
-                      disabled={!appConfig.apkLink}
+                  <>
+                    {/*
+                    <motion.button
+                      onClick={() => setIsApkModalOpen(true)}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      className="inline-block"
                     >
-                      <Download className="mr-2 w-6 h-6" />
-                      Download APK Build
-                    </Button>
-                  </motion.button>
+                      <Button
+                        size="lg"
+                        className="text-sm sm:text-lg px-8 py-6 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-xl shadow-lg shadow-primary/30"
+                        disabled={!appConfig.apkLink}
+                      >
+                        <Download className="mr-2 w-6 h-6" />
+                        Download APK Build
+                      </Button>
+                    </motion.button>
+                    */}
+                    <motion.button
+                      onClick={() => setIsAlphaModalOpen(true)}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      className="inline-block"
+                    >
+                      <Button
+                        size="lg"
+                        className="text-sm sm:text-lg px-8 py-6 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-xl shadow-lg shadow-primary/30"
+                      >
+                        <FlaskConical className="mr-2 w-6 h-6" />
+                        Join alpha testing
+                      </Button>
+                    </motion.button>
+                  </>
                 )}
                 {/* In-restaurant mode CTA */}
                 <motion.button
@@ -242,6 +262,7 @@ export const CTASection = ({ selectedView }: CTASectionProps) => {
 
       {/* APK Download Modal */}
       <ApkDownloadModal isOpen={isApkModalOpen} onClose={() => setIsApkModalOpen(false)} />
+      <AlphaTesterModal open={isAlphaModalOpen} onOpenChange={setIsAlphaModalOpen} />
 
       {/* Try it here Modal */}
       <Dialog open={isTryHereOpen} onOpenChange={setIsTryHereOpen}>

@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { ExternalLink, Apple, Smartphone, ArrowLeftRight, Download } from "lucide-react"
+import { ExternalLink, Apple, Smartphone, ArrowLeftRight, FlaskConical } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { ApkDownloadModal } from "@/components/ApkDownloadModal"
+import { AlphaTesterModal } from "@/components/AlphaTesterModal"
 import { TamuLogo } from "@/components/TamuLogo"
 import appConfig from "@/config/app-config.json"
 
@@ -15,7 +15,7 @@ interface HeaderProps {
 
 export const Header = ({ selectedView, onSwitchExperience }: HeaderProps) => {
   const [scrolled, setScrolled] = useState(false)
-  const [isApkModalOpen, setIsApkModalOpen] = useState(false)
+  const [isAlphaModalOpen, setIsAlphaModalOpen] = useState(false)
 
   useEffect(() => {
     const handleScroll = () => {
@@ -29,18 +29,20 @@ export const Header = ({ selectedView, onSwitchExperience }: HeaderProps) => {
   if (!selectedView) return null
 
   return (
-    <AnimatePresence>
-      <motion.header
-        initial={{ y: -100, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        exit={{ y: -100, opacity: 0 }}
-        transition={{ duration: 0.3 }}
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-          scrolled ? "bg-background/80 backdrop-blur-lg border-b border-border shadow-lg" : "bg-transparent"
-        }`}
-      >
-        <div className="container mx-auto px-6">
-          <div className="flex items-center justify-between h-20">
+    <>
+      <AnimatePresence>
+        <motion.header
+          key="tamu-header"
+          initial={{ y: -100, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          exit={{ y: -100, opacity: 0 }}
+          transition={{ duration: 0.3 }}
+          className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+            scrolled ? "bg-background/80 backdrop-blur-lg border-b border-border shadow-lg" : "bg-transparent"
+          }`}
+        >
+          <div className="container mx-auto px-6">
+            <div className="flex items-center justify-between h-20">
             {/* Left: Logo and Brand */}
             <button 
               onClick={() => window.location.reload()}
@@ -89,10 +91,11 @@ export const Header = ({ selectedView, onSwitchExperience }: HeaderProps) => {
                       </motion.a>
                     </>
                   ) : (
-                    <motion.button onClick={() => setIsApkModalOpen(true)} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                      <Button size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground" disabled={!appConfig.apkLink}>
-                        <Download className="w-4 h-4 sm:mr-2" />
-                        <span className="hidden sm:inline">Download APK</span>
+                    <motion.button onClick={() => setIsAlphaModalOpen(true)} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                      <Button size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold">
+                        <FlaskConical className="w-4 h-4 sm:mr-2" />
+                        <span className="hidden sm:inline">Join alpha testing</span>
+                        <span className="sm:hidden text-xs">Join alpha</span>
                       </Button>
                     </motion.button>
                   )}
@@ -112,10 +115,10 @@ export const Header = ({ selectedView, onSwitchExperience }: HeaderProps) => {
             </div>
           </div>
         </div>
-      </motion.header>
-      
-      {/* APK Download Modal */}
-      <ApkDownloadModal isOpen={isApkModalOpen} onClose={() => setIsApkModalOpen(false)} />
-    </AnimatePresence>
+        </motion.header>
+      </AnimatePresence>
+
+      <AlphaTesterModal open={isAlphaModalOpen} onOpenChange={setIsAlphaModalOpen} />
+    </>
   )
 }

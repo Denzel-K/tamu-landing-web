@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Hero } from "@/components/Hero"
 import { Header } from "@/components/Header"
@@ -13,6 +13,7 @@ import { TamuLogo } from "@/components/TamuLogo"
 const Index = () => {
   const [selectedView, setSelectedView] = useState<"mobile" | "web" | null>(null)
   const [scrollEnabled, setScrollEnabled] = useState(false)
+  const previousViewRef = useRef<"mobile" | "web" | null>(null)
 
   useEffect(() => {
     // Enable scroll always - Hero is now scrollable in default state
@@ -32,17 +33,32 @@ const Index = () => {
     }
   }, [selectedView])
 
+  useEffect(() => {
+    const previous = previousViewRef.current
+    if (previous && selectedView && previous !== selectedView) {
+      window.scrollTo({ top: 0, behavior: "smooth" })
+    }
+    previousViewRef.current = selectedView
+  }, [selectedView])
+
   const handleSelectView = (view: "mobile" | "web") => {
     setSelectedView(view)
   }
 
-  const handleSwitchExperience = () => {
-    setSelectedView((prev) => (prev === "web" ? "mobile" : "web"))
+  const handleSwitchExperience = (nextView?: "mobile" | "web") => {
+    const resolved =
+      nextView ??
+      (selectedView
+        ? selectedView === "web"
+          ? "mobile"
+          : "web"
+        : "mobile")
+    setSelectedView(resolved)
   }
 
   return (
     <div className="min-h-screen bg-background">
-      <Header selectedView={selectedView} onSwitchExperience={handleSwitchExperience} />
+      <Header selectedView={selectedView} onSwitchExperience={() => handleSwitchExperience()} />
 
       {/* Hero Section */}
       <Hero onSelectView={handleSelectView} selectedView={selectedView} />
@@ -60,7 +76,7 @@ const Index = () => {
 
             <CTASection selectedView={selectedView} />
 
-            <ExperienceSwitcher currentView={selectedView} onSwitch={handleSwitchExperience} />
+            <ExperienceSwitcher currentView={selectedView} onSwitch={(view) => handleSwitchExperience(view)} />
 
             {/* Footer */}
             <footer className="relative border-t border-border py-16 overflow-hidden">

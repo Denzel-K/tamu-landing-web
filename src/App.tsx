@@ -15,6 +15,7 @@ import Enter from "./pages/Enter.tsx";
 import RRedirect from "./pages/R.tsx";
 import Privacy from "./pages/Privacy.tsx";
 import Terms from "./pages/Terms.tsx";
+import ManageTesters from "./pages/ManageTesters.tsx";
 import { CartProvider } from "@/lib/cart/CartContext";
 
 const queryClient = new QueryClient();
@@ -38,6 +39,7 @@ const App = () => (
           <Route path="/r/:id" element={<RRedirect />} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/terms" element={<Terms />} />
+          <Route path="/manage-testers" element={<ManageTesters />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
