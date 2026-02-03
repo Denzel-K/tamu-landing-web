@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { BrowserMultiFormatReader, IScannerControls } from "@zxing/browser";
-import { Result } from "@zxing/library";
+// import { Result } from "@zxing/library";
 import { Button } from "@/components/ui/button";
 
 interface QRScannerProps {
@@ -72,7 +72,7 @@ const QRScanner: React.FC<QRScannerProps> = ({ onDetected, onCancel }) => {
           controlsRef.current = await codeReaderRef.current.decodeFromVideoDevice(
             deviceId,
             videoRef.current,
-            (result: Result | undefined) => {
+            (result: any) => {
               if (result?.getText) onDetected(result.getText());
             }
           );
@@ -81,7 +81,7 @@ const QRScanner: React.FC<QRScannerProps> = ({ onDetected, onCancel }) => {
           controlsRef.current = await codeReaderRef.current.decodeFromConstraints(
             { video: { facingMode: 'environment' } as MediaTrackConstraints },
             videoRef.current,
-            (result: Result | undefined) => {
+            (result: any) => {
               if (result?.getText) onDetected(result.getText());
             }
           );
