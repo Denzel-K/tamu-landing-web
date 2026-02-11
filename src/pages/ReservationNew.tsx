@@ -4,7 +4,7 @@ import { getRestaurantById, type Restaurant } from "@/lib/api/restaurants";
 import { createReservation, fetchReservationPolicy, checkExistingReservations, type ReservationType } from "@/lib/api/reservations";
 import { fetchPaymentMethodsForRestaurant, fetchPaymentConfigForBusiness, type PaymentMethodsResponse, type PaymentConfigResponse } from "@/lib/api/payments";
 import PaymentMethodSheetWeb from "@/components/web/PaymentMethodSheetWeb";
-import NewReservationHeaderWeb from "@/components/web/headers/NewReservationHeaderWeb";
+import AppHeaderWeb from "@/components/web/headers/AppHeaderWeb";
 import ReservationTypeSelectorWeb from "@/components/web/reservations/ReservationTypeSelectorWeb";
 import DateTimeFieldWeb from "@/components/web/common/DateTimeFieldWeb";
 import ReservationSummaryWeb from "@/components/web/reservations/ReservationSummaryWeb";
@@ -180,9 +180,15 @@ export default function ReservationNew() {
   // Select step UI
   if (step === 'select') {
     return (
-      <div className="container mx-auto px-6 py-8">
-        <NewReservationHeaderWeb restaurant={restaurant} />
-        {/* Step indicator */}
+      <>
+        <AppHeaderWeb
+          pageTitle="New Reservation"
+          pageSubtitle={restaurant?.name || undefined}
+          showBackButton={true}
+          backTo={`/restaurant/${encodeURIComponent(restaurant?.id || '')}`}
+        />
+        <div className="container mx-auto px-6 py-8">
+          {/* Step indicator */}
         <div className="flex items-center gap-2 text-xs text-muted-foreground mb-4">
           <div className={`px-2 py-1 rounded ${step === 'select' ? 'bg-primary/10 text-primary' : 'bg-muted'}`}>1. Details</div>
           <div className="h-px flex-1 bg-border" />
@@ -309,15 +315,22 @@ export default function ReservationNew() {
         </div>
 
         <AuthModalWeb open={authOpen} onOpenChange={setAuthOpen} onAuthed={() => setAuthOpen(false)} />
-      </div>
+        </div>
+      </>
     );
   }
 
   // Summary step UI
   return (
-    <div className="container mx-auto px-6 py-8">
-      <NewReservationHeaderWeb restaurant={restaurant} />
-      {/* Step indicator */}
+    <>
+      <AppHeaderWeb
+        pageTitle="New Reservation"
+        pageSubtitle={restaurant?.name || undefined}
+        showBackButton={true}
+        backTo={`/restaurant/${encodeURIComponent(restaurant?.id || '')}`}
+      />
+      <div className="container mx-auto px-6 py-8">
+        {/* Step indicator */}
       <div className="flex items-center gap-2 text-xs text-muted-foreground mb-4">
         <div className={`px-2 py-1 rounded bg-muted`}>1. Details</div>
         <div className="h-px flex-1 bg-border" />
@@ -467,6 +480,7 @@ export default function ReservationNew() {
         onSubmittedManual={async () => { setShowPay(false); await onSubmit(); }}
       />
       <AuthModalWeb open={authOpen} onOpenChange={setAuthOpen} onAuthed={() => setAuthOpen(false)} />
-    </div>
+      </div>
+    </>
   );
 }

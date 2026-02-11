@@ -4,7 +4,7 @@ import { getRestaurantById, type Restaurant } from "@/lib/api/restaurants";
 import { createOrder, type OrderType, type NewOrderItem } from "@/lib/api/orders";
 import { fetchPaymentMethodsForRestaurant, fetchPaymentConfigForBusiness, type PaymentMethodsResponse, type PaymentConfigResponse } from "@/lib/api/payments";
 import PaymentMethodSheetWeb from "@/components/web/PaymentMethodSheetWeb";
-import NewOrderHeaderWeb from "@/components/web/headers/NewOrderHeaderWeb";
+import AppHeaderWeb from "@/components/web/headers/AppHeaderWeb";
 import OrderTypeSelectorWeb from "@/components/web/orders/OrderTypeSelectorWeb";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -226,9 +226,15 @@ export default function OrderNew() {
   // Select step
   if (step === 'select') {
     return (
-      <div className="container mx-auto px-6 py-8">
-        <NewOrderHeaderWeb restaurant={restaurant} />
-        {/* Step indicator */}
+      <>
+        <AppHeaderWeb
+          pageTitle="New Order"
+          pageSubtitle={restaurant?.name || undefined}
+          showBackButton={true}
+          backTo={`/restaurant/${encodeURIComponent(restaurant?.id || '')}`}
+        />
+        <div className="container mx-auto px-6 py-8">
+          {/* Step indicator */}
         <div className="flex items-center gap-2 text-xs text-muted-foreground mb-4">
           <div className={`px-2 py-1 rounded ${step === 'select' ? 'bg-primary/10 text-primary' : 'bg-muted'}`}>1. Details</div>
           <div className="h-px flex-1 bg-border" />
@@ -381,7 +387,8 @@ export default function OrderNew() {
         </div>
 
         <AuthModalWeb open={authOpen} onOpenChange={setAuthOpen} onAuthed={() => setAuthOpen(false)} />
-      </div>
+        </div>
+      </>
     );
   }
 
@@ -390,9 +397,15 @@ export default function OrderNew() {
     const totalAmt = (cartItems || []).reduce((s, it) => s + (Number(it.price) || 0) * (Number(it.quantity) || 0), 0);
     const paymentsReady = !!paymentMethods || !!paymentConfig;
     return (
-      <div className="container mx-auto px-6 py-8">
-        <NewOrderHeaderWeb restaurant={restaurant} />
-        {/* Step indicator */}
+      <>
+        <AppHeaderWeb
+          pageTitle="New Order"
+          pageSubtitle={restaurant?.name || undefined}
+          showBackButton={true}
+          backTo={`/restaurant/${encodeURIComponent(restaurant?.id || '')}`}
+        />
+        <div className="container mx-auto px-6 py-8">
+          {/* Step indicator */}
         <div className="flex items-center gap-2 text-xs text-muted-foreground mb-4">
           <div className={`px-2 py-1 rounded bg-muted`}>1. Details</div>
           <div className="h-px flex-1 bg-border" />
@@ -465,7 +478,8 @@ export default function OrderNew() {
           onDeferCash={() => { setShowPay(false); setPaidJustNow(false); if (lastOrderId) { setStep('confirmation'); navigate(`/orders/confirmation/${encodeURIComponent(lastOrderId)}`); } }}
           onSubmittedManual={() => { setShowPay(false); setPaidJustNow(false); if (lastOrderId) { setStep('confirmation'); navigate(`/orders/confirmation/${encodeURIComponent(lastOrderId)}`); } }}
         />
-      </div>
+        </div>
+      </>
     );
   }
 

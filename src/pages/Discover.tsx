@@ -10,6 +10,7 @@ import RestaurantCardWeb from "@/components/web/RestaurantCardWeb";
 import CompactRestaurantCardWeb from "@/components/web/CompactRestaurantCardWeb";
 import MapViewRestaurantCardWeb from "@/components/web/MapViewRestaurantCardWeb";
 import NearbyRestaurantsLoaderWeb from "@/components/web/NearbyRestaurantsLoaderWeb";
+import AppHeaderWeb from "@/components/web/headers/AppHeaderWeb";
 
 export default function Discover() {
   const {
@@ -87,17 +88,17 @@ export default function Discover() {
   }
 
   return (
-    <div className="container mx-auto px-6 py-10">
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-4">
-        <div>
-          <h1 className="text-2xl font-bold">Discover</h1>
-          <p className="text-sm text-muted-foreground">Search, filter, and explore nearby restaurants.</p>
-        </div>
-        <div className="flex gap-2">
+    <>
+      <AppHeaderWeb
+        pageTitle="Discover"
+        pageSubtitle="Search, filter, and explore nearby restaurants"
+        showAuthButtons={true}
+      />
+      <div className="container mx-auto px-6 py-10">
+        <div className="flex justify-end gap-2 mb-4">
           <Button variant={viewMode === 'list' ? 'default' : 'outline'} onClick={() => setViewMode('list')}>List</Button>
           <Button variant={viewMode === 'map' ? 'default' : 'outline'} onClick={() => setViewMode('map')}>Map</Button>
         </div>
-      </div>
 
       {!locationPermissionGranted && (
         <div className="mb-3">
@@ -243,6 +244,7 @@ export default function Discover() {
           )}
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 }

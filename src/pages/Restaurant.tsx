@@ -12,7 +12,7 @@ import RestaurantHeaderWeb from "@/components/web/RestaurantHeaderWeb";
 import TabNavigationWeb from "@/components/web/TabNavigationWeb";
 import { useCart } from "@/lib/cart/CartContext";
 import FloatingCartWeb from "@/components/web/orders/FloatingCartWeb";
-import AuthModalWeb from "@/components/auth/AuthModalWeb";
+import AppHeaderWeb from "@/components/web/headers/AppHeaderWeb";
 import { authLocal, authBus } from "@/lib/auth/authLocal";
 import mobileAuthService from "@/lib/auth/mobileAuthService";
 
@@ -22,11 +22,6 @@ export default function RestaurantPage() {
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [authOpen, setAuthOpen] = useState(false);
-  const [authInitial, setAuthInitial] = useState<"signin" | "signup">("signup");
-  const [isAuthed, setIsAuthed] = useState<boolean>(!!authLocal.getAccessToken());
-  const [userName, setUserName] = useState<string | null>(authLocal.getUser()?.firstName ? `${authLocal.getUser()?.firstName} ${authLocal.getUser()?.lastName || ''}`.trim() : null);
-  const [userEmail, setUserEmail] = useState<string | null>(authLocal.getUser()?.email || null);
   const [activeTab, setActiveTab] = useState<'Menu' | 'Reviews' | 'Info'>('Menu');
   const {
     initiator,
@@ -97,21 +92,6 @@ export default function RestaurantPage() {
   }, [restaurant?.menu]);
 
   useEffect(() => {
-    const unsubLogin = authBus.subscribe('login', () => {
-      setIsAuthed(true);
-      const u = authLocal.getUser();
-      setUserName(u?.firstName ? `${u.firstName} ${u.lastName || ''}`.trim() : null);
-      setUserEmail(u?.email || null);
-    });
-    const unsubLogout = authBus.subscribe('logout', () => {
-      setIsAuthed(false);
-      setUserName(null);
-      setUserEmail(null);
-    });
-    return () => { unsubLogin(); unsubLogout(); };
-  }, []);
-
-  useEffect(() => {
     let mounted = true;
     (async () => {
       try {
@@ -148,45 +128,13 @@ export default function RestaurantPage() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Sticky top header */}
-      <div className="sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/75 border-b border-border">
-        <div className="container mx-auto px-6 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" onClick={() => navigate('/discover')} className="px-2">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" /></svg>
-              <span className="sr-only">Back</span>
-            </Button>
-            <div className="text-sm font-medium truncate">
-              {restaurant?.name || 'Restaurant'}
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            {!isAuthed ? (
-              <>
-                <Button variant="outline" size="sm" onClick={() => { setAuthInitial('signin'); setAuthOpen(true); }}>Sign in</Button>
-                <Button size="sm" onClick={() => { setAuthInitial('signup'); setAuthOpen(true); }}>Sign up</Button>
-              </>
-            ) : (
-              <div className="flex items-center gap-3">
-                <div className="text-right">
-                  <div className="text-sm font-semibold leading-tight truncate max-w-[200px] sm:max-w-[280px]">{userName || 'Account'}</div>
-                  <div className="text-xs text-muted-foreground truncate max-w-[200px] sm:max-w-[280px]">{userEmail}</div>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={async () => {
-                    try { await mobileAuthService.logout(); } catch { /* noop */ }
-                    navigate('/discover');
-                  }}
-                >
-                  Logout
-                </Button>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
+      <AppHeaderWeb
+        pageTitle={restaurant?.name || 'Restaurant'}
+        pageSubtitle={restaurant?.cuisine || undefined}
+        showBackButton={true}
+        backTo="/discover"
+        showAuthButtons={true}
+      />
       {/* Scrollable content area */}
       <div
         className="container mx-auto px-6 py-10 flex-1"
@@ -240,7 +188,6 @@ export default function RestaurantPage() {
           <FloatingCartWeb restaurantId={restaurant.id} />
         )}
         <AuthGateModal open={false} onOpenChange={() => { }} />
-        <AuthModalWeb open={authOpen} onOpenChange={setAuthOpen} initialView={authInitial} onAuthed={() => { /* success handled inside modal */ }} />
       </div>
 
       {/* Sticky bottom bar - rendered at root level to sit at the viewport bottom */}

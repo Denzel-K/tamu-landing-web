@@ -27,11 +27,39 @@ export async function createOrder(payload: {
   });
 }
 
-export interface WebOrderItem { name: string; price: number; quantity: number }
-export interface WebOrder { id: string; status?: string; items: WebOrderItem[]; restaurant?: { id: string; name?: string } }
+export interface WebOrderItem {
+  name: string;
+  price: number;
+  quantity: number;
+  image?: string;
+  menuItemId?: string;
+  addons?: { name: string; price: number }[];
+}
+
+export interface WebOrder {
+  id: string;
+  status?: string;
+  items: WebOrderItem[];
+  restaurant?: { id: string; name?: string };
+  businessId?: string;
+  waiterName?: string;
+}
 
 export async function fetchOrderById(id: string) {
   return getJson<{ order: WebOrder | null }>(withBase(`/api/orders/${encodeURIComponent(id)}`));
+}
+
+export async function updateOrder(
+  id: string,
+  payload: { items?: WebOrderItem[] }
+) {
+  return getJson<{ order: WebOrder }>(
+    withBase(`/api/orders`),
+    {
+      method: "PATCH",
+      body: JSON.stringify({ orderId: id, ...payload }),
+    }
+  );
 }
 
 export async function cancelOrder(id: string) {
