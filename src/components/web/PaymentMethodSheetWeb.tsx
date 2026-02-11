@@ -166,7 +166,7 @@ export default function PaymentMethodSheetWeb({ open, onOpenChange, context, pay
             </div>
           )}
           {cashEnabled && context.allowPayLater !== false && (
-            <Button variant="secondary" className="w-full" disabled={submitting} onClick={() => onDeferCash()}>Pay Later (Cash)</Button>
+            <Button variant="secondary" className="w-full" disabled={submitting} onClick={() => onDeferCash()}>Pay Later</Button>
           )}
 
           {manualAvailable && (

@@ -4,7 +4,7 @@ import { getRestaurantById, type Restaurant } from "@/lib/api/restaurants";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AuthGateModal } from "@/components/AuthGateModal";
 import { Button } from "@/components/ui/button";
-import MenuListWeb, { type MenuCategory as WebMenuCategory } from "@/components/web/MenuListWeb";
+import MenuListWeb, { type MenuCategoryWeb } from "@/components/web/MenuListWeb";
 import ReviewsWeb from "@/components/web/ReviewsWeb";
 import InfoPanelWeb from "@/components/web/InfoPanelWeb";
 import OrderReserveBarWeb from "@/components/web/OrderReserveBarWeb";
@@ -28,8 +28,28 @@ export default function RestaurantPage() {
   const [userName, setUserName] = useState<string | null>(authLocal.getUser()?.firstName ? `${authLocal.getUser()?.firstName} ${authLocal.getUser()?.lastName || ''}`.trim() : null);
   const [userEmail, setUserEmail] = useState<string | null>(authLocal.getUser()?.email || null);
   const [activeTab, setActiveTab] = useState<'Menu' | 'Reviews' | 'Info'>('Menu');
-  const { initiator, preOrderEnabled } = useCart();
+  const {
+    initiator,
+    preOrderEnabled,
+    setTableNumber,
+    setWaiterName,
+    setRestaurantId,
+    restaurantId: cartRestaurantId
+  } = useCart();
   const showControls = initiator === 'order' || (initiator === 'reserve' && preOrderEnabled);
+
+  // Sync QR context and restaurant ID
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const table = searchParams.get('table');
+    const waiter = searchParams.get('waiter');
+    if (table) setTableNumber(table);
+    if (waiter) setWaiterName(waiter);
+
+    if (id && id !== cartRestaurantId) {
+      setRestaurantId(id);
+    }
+  }, [id, cartRestaurantId, setTableNumber, setWaiterName, setRestaurantId]);
 
   // Accept both mobile-style categorized menus and flat item arrays from API
   type RawMenuItem = {
@@ -47,9 +67,9 @@ export default function RestaurantPage() {
   type RawMenuCategory = { category?: string; items?: RawMenuItem[] };
 
   // Normalize menu into categories expected by MenuListWeb
-  const normalizedMenu = useMemo<WebMenuCategory[]>(() => {
-    const raw = restaurant?.menu as unknown as (RawMenuItem | RawMenuCategory)[] | undefined;
-    if (!Array.isArray(raw) || raw.length === 0) return [] as WebMenuCategory[];
+  const normalizedMenu = useMemo<MenuCategoryWeb[]>(() => {
+    const raw = restaurant?.menu as unknown as (RawMenuItem | MenuCategoryWeb)[] | undefined;
+    if (!Array.isArray(raw) || raw.length === 0) return [] as MenuCategoryWeb[];
 
     // Helper to map any menu item shape to the web component shape
     const mapItem = (it: RawMenuItem) => ({
@@ -66,7 +86,7 @@ export default function RestaurantPage() {
     const first = raw[0] as RawMenuItem | RawMenuCategory;
     const looksCategorized = typeof first === 'object' && first !== null && 'category' in (first as RawMenuCategory) && Array.isArray((first as RawMenuCategory).items);
     if (looksCategorized) {
-      return (raw as RawMenuCategory[]).map((cat): WebMenuCategory => ({
+      return (raw as RawMenuCategory[]).map((cat): MenuCategoryWeb => ({
         category: String(cat?.category ?? 'Menu'),
         items: Array.isArray(cat?.items) ? cat.items.map(mapItem) : [],
       }));
@@ -133,7 +153,7 @@ export default function RestaurantPage() {
         <div className="container mx-auto px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="sm" onClick={() => navigate('/discover')} className="px-2">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" /></svg>
               <span className="sr-only">Back</span>
             </Button>
             <div className="text-sm font-medium truncate">
@@ -174,7 +194,7 @@ export default function RestaurantPage() {
       >
         <RestaurantHeaderWeb restaurant={restaurant} />
         <div className="flex items-center justify-between mb-4">
-          <TabNavigationWeb tabs={["Menu","Reviews","Info"] as const} activeTab={activeTab} onChange={(t: 'Menu' | 'Reviews' | 'Info') => setActiveTab(t)} />
+          <TabNavigationWeb tabs={["Menu", "Reviews", "Info"] as const} activeTab={activeTab} onChange={(t: 'Menu' | 'Reviews' | 'Info') => setActiveTab(t)} />
         </div>
 
         {/* Content */}
@@ -184,7 +204,12 @@ export default function RestaurantPage() {
               <CardTitle>Menu</CardTitle>
             </CardHeader>
             <CardContent>
-              <MenuListWeb menu={normalizedMenu} restaurantId={restaurant.id} showControls={showControls} />
+              <MenuListWeb
+                menu={normalizedMenu}
+                restaurantId={restaurant.id}
+                showControls={showControls}
+                canReserve={!!restaurant.availableReservationTypes?.length}
+              />
             </CardContent>
           </Card>
         )}
@@ -214,13 +239,16 @@ export default function RestaurantPage() {
         {activeTab === 'Menu' && (
           <FloatingCartWeb restaurantId={restaurant.id} />
         )}
-        <AuthGateModal open={false} onOpenChange={() => {}} />
+        <AuthGateModal open={false} onOpenChange={() => { }} />
         <AuthModalWeb open={authOpen} onOpenChange={setAuthOpen} initialView={authInitial} onAuthed={() => { /* success handled inside modal */ }} />
       </div>
 
       {/* Sticky bottom bar - rendered at root level to sit at the viewport bottom */}
       {activeTab === 'Menu' && (
-        <OrderReserveBarWeb restaurantId={restaurant.id} />
+        <OrderReserveBarWeb
+          restaurantId={restaurant.id}
+          setActiveTab={setActiveTab}
+        />
       )}
     </div>
   );

@@ -7,6 +7,7 @@ export interface NewOrderItem {
   name: string;
   price: number;
   quantity: number;
+  addons?: { name: string; price: number }[];
 }
 
 export async function createOrder(payload: {
@@ -16,6 +17,9 @@ export async function createOrder(payload: {
   tableNumber?: string;
   partySize?: number;
   deliveryAddress?: string;
+  orderNotes?: string;
+  requestUtensils?: boolean;
+  waiter?: string;
 }) {
   return getJson<{ order: { id: string }; realtimeToken?: string }>(withBase("/api/orders"), {
     method: "POST",

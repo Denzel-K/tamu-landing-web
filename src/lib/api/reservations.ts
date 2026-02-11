@@ -19,6 +19,12 @@ export async function createReservation(payload: NewReservationPayload) {
   });
 }
 
+export async function checkExistingReservations(restaurantId: string) {
+  return getJson<{ count: number; reservations: any[] }>(
+    withBase(`/api/reservations/check?restaurantId=${encodeURIComponent(restaurantId)}`)
+  );
+}
+
 export async function fetchReservationPolicy(businessId: string) {
   return getJson<{ policy: any | null }>(withBase(`/api/reservations/policy?businessId=${encodeURIComponent(businessId)}`));
 }

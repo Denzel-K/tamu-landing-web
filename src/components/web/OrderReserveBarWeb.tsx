@@ -6,7 +6,13 @@ import { useNavigate } from "react-router-dom";
 import { authLocal, authBus } from "@/lib/auth/authLocal";
 import AuthModalWeb from "@/components/auth/AuthModalWeb";
 
-export default function OrderReserveBarWeb({ restaurantId }: { restaurantId: string }) {
+export default function OrderReserveBarWeb({
+  restaurantId,
+  setActiveTab
+}: {
+  restaurantId: string;
+  setActiveTab?: (tab: 'Menu' | 'Reviews' | 'Info') => void;
+}) {
   const { items, initiator, preOrderEnabled, setInitiator, setPreOrderEnabled } = useCart();
   const navigate = useNavigate();
   const barRef = useRef<HTMLDivElement | null>(null);
@@ -66,39 +72,69 @@ export default function OrderReserveBarWeb({ restaurantId }: { restaurantId: str
   };
 
   return (
-    <div ref={barRef} className="sticky bottom-0 left-0 right-0 bg-card/95 border-t border-border py-3 backdrop-blur supports-[backdrop-filter]:bg-card/80">
-      <div className="container mx-auto px-6">
-        <div className="flex flex-col gap-3">
-          <div className="flex gap-2">
-            <Button className={`flex-1 ${initiator === 'order' ? '' : 'bg-primary/10 hover:bg-primary/20 text-primary border border-primary'}`} variant={initiator === 'order' ? 'default' : 'secondary'} onClick={() => setInitiator('order')}>Order now</Button>
-            <Button className={`flex-1 ${initiator === 'reserve' ? '' : 'bg-accent/10 hover:bg-accent/20 text-foreground border border-accent'}`} variant={initiator === 'reserve' ? 'default' : 'secondary'} onClick={() => setInitiator('reserve')}>Reserve</Button>
+    <div ref={barRef} className="sticky bottom-0 left-0 right-0 z-50 bg-background/95 border-t border-border pb-safe pt-4 backdrop-blur-md supports-[backdrop-filter]:bg-background/80 shadow-[0_-8px_30px_rgb(0,0,0,0.04)]">
+      <div className="container mx-auto px-6 max-w-lg">
+        <div className="flex flex-col gap-4">
+          {/* Segmented intent toggle */}
+          <div className="flex p-1 bg-muted/50 rounded-xl border border-border/50">
+            <button
+              onClick={() => { setInitiator('order'); setActiveTab && setActiveTab('Menu'); }}
+              className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-all duration-300 ${initiator === 'order'
+                ? 'bg-primary text-white shadow-md shadow-primary/20 scale-[1.02]'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                }`}
+            >
+              Order now
+            </button>
+            <button
+              onClick={() => { setInitiator('reserve'); }}
+              className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-all duration-300 ${initiator === 'reserve'
+                ? 'bg-accent text-accent-foreground shadow-md shadow-accent/20 scale-[1.02]'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                }`}
+            >
+              Reserve
+            </button>
           </div>
 
+          {/* Preorder toggle for reservations */}
           {initiator === 'reserve' && (
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-sm font-semibold">Preorder items</div>
-                <div className="text-xs text-muted-foreground">Add items now to have them ready when you arrive.</div>
+            <div className="flex items-center justify-between py-1 px-1 animate-in slide-in-from-top-2 duration-300">
+              <div className="flex-1 pr-4">
+                <div className="text-sm font-bold text-foreground">Preorder items</div>
+                <div className="text-[11px] text-muted-foreground leading-tight">Add items now to have them ready when you arrive.</div>
               </div>
-              <Switch checked={preOrderEnabled} onCheckedChange={(v) => setPreOrderEnabled(v)} />
+              <Switch
+                checked={preOrderEnabled}
+                onCheckedChange={(v) => {
+                  setPreOrderEnabled(v);
+                  if (v && setActiveTab) setActiveTab('Menu');
+                }}
+              />
             </div>
           )}
 
-          <div className="flex items-center gap-2">
-            <Button className="flex-1" onClick={proceed} disabled={initiator === 'order' && !hasItems}>{proceedLabel}</Button>
+          {/* Proceed button */}
+          <div className="flex items-center gap-3">
+            <Button
+              className={`flex-1 h-12 rounded-xl text-base font-black shadow-lg shadow-primary/10 hover:shadow-primary/20 transition-all active:scale-[0.98] ${initiator === 'order' && !hasItems ? 'bg-muted text-muted-foreground hover:bg-muted cursor-default' : ''
+                }`}
+              onClick={proceed}
+              disabled={initiator === 'order' && !hasItems}
+            >
+              {proceedLabel}
+            </Button>
           </div>
-          <div className="text-[11px] text-muted-foreground">
-            {initiator ? (
-              <>Mode: {initiator === 'order' ? 'Ordering' : 'Reservation'}{initiator === 'reserve' ? ` • Preorder: ${preOrderEnabled ? 'On' : 'Off'}` : ''}</>
-            ) : (
-              <>Mode: Idle</>
-            )}
+
+          {/* State indicator (Subtle) */}
+          <div className="flex items-center justify-center gap-2">
+            <div className={`w-1.5 h-1.5 rounded-full ${initiator ? 'bg-primary animate-pulse' : 'bg-muted'}`} />
+            <span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground/60">
+              {initiator ? (initiator === 'order' ? 'Ordering Mode' : 'Reservation Mode') : 'Select Mode to start'}
+            </span>
           </div>
         </div>
-        <AuthModalWeb open={authOpen} onOpenChange={setAuthOpen} onAuthed={() => {
-          setAuthOpen(false);
-          // After auth, auto-continue the pending action if user clicks again.
-        }} />
+        <AuthModalWeb open={authOpen} onOpenChange={setAuthOpen} onAuthed={() => setAuthOpen(false)} />
       </div>
     </div>
   );
